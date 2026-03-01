@@ -10,4 +10,9 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PocketGrail.Application\PocketGrail.Application.csproj" />
+    <ProjectReference Include="..\PocketGrail.Infrastructure\PocketGrail.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
