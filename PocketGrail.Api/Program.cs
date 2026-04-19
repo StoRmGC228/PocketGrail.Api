@@ -1,3 +1,4 @@
+using PocketGrail.Api.Hubs;
 using PocketGrail.Infrastructure.InfConfiguration;
 
 namespace PocketGrail.Api
@@ -12,6 +13,25 @@ namespace PocketGrail.Api
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddSignalR();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("FrontendPolicy", policy =>
+                {
+                    policy
+                        .SetIsOriginAllowed(origin =>
+                        {
+                            var host = new Uri(origin).Host;
+                            return host == "localhost"
+                                || host.EndsWith(".ngrok-free.app")
+                                || host.EndsWith(".ngrok.io");
+                        })
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
+            });
 
             var app = builder.Build();
 
@@ -21,12 +41,12 @@ namespace PocketGrail.Api
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
+            app.UseCors("FrontendPolicy");
 
             app.UseAuthorization();
 
-
             app.MapControllers();
+            app.MapHub<SessionHub>("/hubs/session");
 
             app.Run();
         }

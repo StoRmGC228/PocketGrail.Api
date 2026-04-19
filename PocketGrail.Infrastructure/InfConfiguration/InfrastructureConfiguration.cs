@@ -3,6 +3,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PocketGrail.Application.Interfaces;
+using PocketGrail.Application.Services;
+using PocketGrail.Infrastructure.Repositories;
 
 public static class InfrastructureConfiguration
 {
@@ -18,6 +21,10 @@ public static class InfrastructureConfiguration
 
         services.AddDbContext<PocketGrailDbContext>(options =>
             options.UseNpgsql(connectionString));
+
+        services.AddScoped<ISessionRepository, SessionRepository>();
+        services.AddScoped<ISessionService, SessionService>();
+
         return services;
     }
 }
