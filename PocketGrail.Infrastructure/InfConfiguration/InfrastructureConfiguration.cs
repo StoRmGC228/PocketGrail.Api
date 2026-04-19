@@ -10,10 +10,14 @@ public static class InfrastructureConfiguration
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var connectionString =
+            Environment.GetEnvironmentVariable("POCKET_GRAIL_CONNECTION_STRING")
+            ?? configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException(
+                "Connection string not configured. Set POCKET_GRAIL_CONNECTION_STRING env var or ConnectionStrings:DefaultConnection in appsettings.");
+
         services.AddDbContext<PocketGrailDbContext>(options =>
-            options.UseNpgsql(
-                configuration.GetConnectionString(
-                    Environment.GetEnvironmentVariable("POCKET_GRAIL_CONNECTION_STRING"))));
+            options.UseNpgsql(connectionString));
         return services;
     }
 }
