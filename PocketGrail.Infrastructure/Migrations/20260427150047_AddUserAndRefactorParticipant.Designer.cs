@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PocketGrail.Infrastructure;
@@ -11,9 +12,11 @@ using PocketGrail.Infrastructure;
 namespace PocketGrail.Infrastructure.Migrations
 {
     [DbContext(typeof(PocketGrailDbContext))]
-    partial class PocketGrailDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260427150047_AddUserAndRefactorParticipant")]
+    partial class AddUserAndRefactorParticipant
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -105,11 +108,6 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

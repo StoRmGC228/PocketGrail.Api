@@ -22,7 +22,6 @@ public sealed class SessionService : ISessionService
 
         var session = new Session
         {
-            Id = Guid.NewGuid(),
             Code = code,
             IsActive = true,
             CreatedAt = now,
@@ -31,12 +30,10 @@ public sealed class SessionService : ISessionService
 
         var dm = new Participant
         {
-            Id = Guid.NewGuid(),
-            Name = request.DungeonMasterName,
+            UserId = request.UserId,
             Role = UserRole.DungeonMaster,
             SessionId = session.Id,
             Session = session,
-            JoinedAt = now,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -62,15 +59,13 @@ public sealed class SessionService : ISessionService
 
         var participant = new Participant
         {
-            Id = Guid.NewGuid(),
-            Name = request.Name,
+            UserId = request.UserId,
             Role = UserRole.Player,
             SessionId = session.Id,
             // Do NOT set Session = session — that marks the already-tracked Session
             // entity as Modified, causing EF to batch an UPDATE alongside the INSERT.
             // Npgsql's aggregate row-count check then throws DbUpdateConcurrencyException
             // when the session row isn't actually changed. FK alone is sufficient.
-            JoinedAt = now,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -96,7 +91,7 @@ public sealed class SessionService : ISessionService
         return sessions.Select(MapToDto).ToList();
     }
 
-    public async Task<bool> LeaveSessionAsync(Guid participantId, string code, CancellationToken ct = default)
+    public async Task<bool> LeaveSessionAsync(int participantId, string code, CancellationToken ct = default)
     {
         var session = await _repository.GetByCodeAsync(code, ct);
         if (session is null) return false;
@@ -138,8 +133,7 @@ public sealed class SessionService : ISessionService
     private static ParticipantDto MapParticipantToDto(Participant p) => new()
     {
         Id = p.Id,
-        Name = p.Name,
-        Role = p.Role.ToString(),
-        JoinedAt = p.JoinedAt
+        UserId = p.UserId,
+        Role = p.Role.ToString()
     };
 }

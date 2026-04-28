@@ -13,17 +13,10 @@ internal sealed class ParticipantConfiguration : IEntityTypeConfiguration<Partic
         builder.Property(p => p.Id)
             .ValueGeneratedOnAdd();
 
-        builder.Property(p => p.Name)
-            .IsRequired()
-            .HasMaxLength(100);
-
         builder.Property(p => p.Role)
             .IsRequired()
             .HasConversion<string>()
             .HasMaxLength(20);
-
-        builder.Property(p => p.JoinedAt)
-            .IsRequired();
 
         builder.Property(p => p.CreatedAt)
             .IsRequired();
@@ -35,5 +28,10 @@ internal sealed class ParticipantConfiguration : IEntityTypeConfiguration<Partic
             .WithMany(s => s.Participants)
             .HasForeignKey(p => p.SessionId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(p => p.User)
+            .WithMany()
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
