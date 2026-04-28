@@ -2,5 +2,5 @@ namespace PocketGrail.Application.DTOs;
 
 public sealed class CreateSessionRequest
 {
-    public string DungeonMasterName { get; init; } = string.Empty;
+    public int UserId { get; init; }
 }

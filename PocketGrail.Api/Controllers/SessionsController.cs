@@ -59,10 +59,10 @@ public sealed class SessionsController : ControllerBase
     }
 
     // DELETE /api/sessions/{code}/leave/{participantId}
-    [HttpDelete("{code}/leave/{participantId:guid}")]
+    [HttpDelete("{code}/leave/{participantId:int}")]
     public async Task<IActionResult> LeaveSession(
         string code,
-        Guid participantId,
+        int participantId,
         CancellationToken ct)
     {
         var result = await _sessionService.LeaveSessionAsync(participantId, code, ct);
