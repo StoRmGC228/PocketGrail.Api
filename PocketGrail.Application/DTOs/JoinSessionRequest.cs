@@ -2,6 +2,6 @@ namespace PocketGrail.Application.DTOs;
 
 public sealed class JoinSessionRequest
 {
-    public string Name { get; init; } = string.Empty;
+    public int UserId { get; init; }
     public string Code { get; init; } = string.Empty;
 }
