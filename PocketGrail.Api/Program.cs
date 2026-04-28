@@ -1,4 +1,7 @@
+using Microsoft.OpenApi.Models;
+using PocketGrail.Api.Configurations;
 using PocketGrail.Api.Hubs;
+using PocketGrail.Api.Middleware;
 using PocketGrail.Infrastructure.InfConfiguration;
 
 namespace PocketGrail.Api
@@ -10,9 +13,38 @@ namespace PocketGrail.Api
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddInfrastructure(builder.Configuration);
+            builder.Services.AddAuthConfiguration(builder.Configuration);
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "PocketGrail API", Version = "v1" });
+
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name         = "Authorization",
+                    Type         = SecuritySchemeType.Http,
+                    Scheme       = "bearer",
+                    BearerFormat = "JWT",
+                    In           = ParameterLocation.Header,
+                    Description  = "Enter your JWT token. Cookie auth is also supported."
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id   = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
             builder.Services.AddSignalR();
 
             builder.Services.AddCors(options =>
@@ -35,6 +67,8 @@ namespace PocketGrail.Api
 
             var app = builder.Build();
 
+            app.UseMiddleware<ErrorHandlerMiddleware>();
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -43,6 +77,7 @@ namespace PocketGrail.Api
 
             app.UseCors("FrontendPolicy");
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();

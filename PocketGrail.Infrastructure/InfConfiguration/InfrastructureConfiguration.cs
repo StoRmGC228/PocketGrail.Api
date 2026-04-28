@@ -24,6 +24,7 @@ public static class InfrastructureConfiguration
 
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<ISessionService, SessionService>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
         return services;
     }
