@@ -1,5 +1,6 @@
 namespace PocketGrail.Application.Services;
 
+using Microsoft.Extensions.Caching.Memory;
 using PocketGrail.Application.DTOs;
 using PocketGrail.Application.Interfaces;
 using PocketGrail.Domain.Entities;
@@ -7,13 +8,23 @@ using PocketGrail.Domain.Entities.Enums;
 
 public sealed class AuthService : IAuthService
 {
+    private static readonly TimeSpan CodeExpiry = TimeSpan.FromMinutes(10);
+
     private readonly IUserRepository _userRepository;
     private readonly IJwtProvider    _jwtProvider;
+    private readonly IEmailService   _emailService;
+    private readonly IMemoryCache    _cache;
 
-    public AuthService(IUserRepository userRepository, IJwtProvider jwtProvider)
+    public AuthService(
+        IUserRepository userRepository,
+        IJwtProvider jwtProvider,
+        IEmailService emailService,
+        IMemoryCache cache)
     {
         _userRepository = userRepository;
         _jwtProvider    = jwtProvider;
+        _emailService   = emailService;
+        _cache          = cache;
     }
 
     public async Task<string> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
@@ -41,7 +52,8 @@ public sealed class AuthService : IAuthService
         await _userRepository.AddAsync(user, ct);
         await _userRepository.SaveChangesAsync(ct);
 
-        return await _jwtProvider.GenerateTokenAsync(user);
+        await SendCodeAsync(email, user.Username, ct);
+        return email;
     }
 
     public async Task<string> LoginAsync(LoginRequest request, CancellationToken ct = default)
@@ -54,6 +66,32 @@ public sealed class AuthService : IAuthService
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             throw new UnauthorizedAccessException("Invalid email or password.");
 
+        await SendCodeAsync(email, user.Username, ct);
+        return email;
+    }
+
+    public async Task<string> VerifyCodeAsync(VerifyCodeRequest request, CancellationToken ct = default)
+    {
+        var email    = request.Email.ToLowerInvariant().Trim();
+        var cacheKey = GetCacheKey(email);
+
+        if (!_cache.TryGetValue<string>(cacheKey, out var storedCode) || storedCode != request.Code)
+            throw new UnauthorizedAccessException("Invalid or expired verification code.");
+
+        _cache.Remove(cacheKey);
+
+        var user = await _userRepository.GetByEmailAsync(email, ct)
+            ?? throw new UnauthorizedAccessException("User not found.");
+
         return await _jwtProvider.GenerateTokenAsync(user);
     }
+
+    private async Task SendCodeAsync(string email, string username, CancellationToken ct)
+    {
+        var code = CodeGeneratorService.Generate();
+        _cache.Set(GetCacheKey(email), code, CodeExpiry);
+        await _emailService.SendVerificationCodeAsync(email, username, code, ct);
+    }
+
+    private static string GetCacheKey(string email) => $"verify:{email}";
 }
