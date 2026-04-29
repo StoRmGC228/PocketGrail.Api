@@ -1,8 +1,7 @@
 using Microsoft.OpenApi.Models;
-using PocketGrail.Api.Configurations;
+using PocketGrail.Api.Configuration;
 using PocketGrail.Api.Hubs;
 using PocketGrail.Api.Middleware;
-using PocketGrail.Infrastructure.InfConfiguration;
 
 namespace PocketGrail.Api
 {
@@ -12,8 +11,7 @@ namespace PocketGrail.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddInfrastructure(builder.Configuration);
-            builder.Services.AddAuthConfiguration(builder.Configuration);
+            builder.AddPocketGrailServices();
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
