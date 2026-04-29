@@ -5,12 +5,12 @@ using System.Text.Json;
 
 public sealed class ErrorHandlerMiddleware
 {
-    private readonly RequestDelegate                 _next;
+    private readonly RequestDelegate _next;
     private readonly ILogger<ErrorHandlerMiddleware> _logger;
 
     public ErrorHandlerMiddleware(RequestDelegate next, ILogger<ErrorHandlerMiddleware> logger)
     {
-        _next   = next;
+        _next = next;
         _logger = logger;
     }
 
@@ -38,14 +38,14 @@ public sealed class ErrorHandlerMiddleware
 
         var (statusCode, message) = exception switch
         {
-            UnauthorizedAccessException => (HttpStatusCode.Unauthorized,      "Unauthorized."),
-            InvalidOperationException   => (HttpStatusCode.Conflict,          exception.Message),
-            KeyNotFoundException        => (HttpStatusCode.NotFound,          exception.Message),
-            _                           => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
+            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Unauthorized."),
+            InvalidOperationException => (HttpStatusCode.Conflict, exception.Message),
+            KeyNotFoundException => (HttpStatusCode.NotFound, exception.Message),
+            _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
         };
 
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode  = (int)statusCode;
+        context.Response.StatusCode = (int)statusCode;
 
         await context.Response.WriteAsync(JsonSerializer.Serialize(new { message }));
     }

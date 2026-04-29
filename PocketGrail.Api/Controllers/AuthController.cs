@@ -20,15 +20,21 @@ public sealed class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        var token = await _authService.RegisterAsync(request, ct);
-        AppendAuthCookie(token);
-        return Ok(new AuthResponse());
+        var email = await _authService.RegisterAsync(request, ct);
+        return Ok(new PendingVerificationResponse { Email = email });
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
-        var token = await _authService.LoginAsync(request, ct);
+        var email = await _authService.LoginAsync(request, ct);
+        return Ok(new PendingVerificationResponse { Email = email });
+    }
+
+    [HttpPost("verify")]
+    public async Task<IActionResult> Verify([FromBody] VerifyCodeRequest request, CancellationToken ct)
+    {
+        var token = await _authService.VerifyCodeAsync(request, ct);
         AppendAuthCookie(token);
         return Ok(new AuthResponse());
     }
