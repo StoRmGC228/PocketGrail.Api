@@ -5,7 +5,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PocketGrail.Application.Interfaces;
 using PocketGrail.Application.Services;
+using PocketGrail.Domain.Configuration;
 using PocketGrail.Infrastructure.Repositories;
+using PocketGrail.Infrastructure.Services;
 
 public static class InfrastructureConfiguration
 {
@@ -21,6 +23,24 @@ public static class InfrastructureConfiguration
 
         services.AddDbContext<PocketGrailDbContext>(options =>
             options.UseNpgsql(connectionString));
+
+        services.AddMemoryCache();
+
+        services.Configure<EmailConfiguration>(opt =>
+        {
+            opt.SenderAddress = Environment.GetEnvironmentVariable("EMAIL_SENDER_ADDRESS")
+                ?? throw new InvalidOperationException("EMAIL_SENDER_ADDRESS environment variable is missing.");
+            opt.SenderName = Environment.GetEnvironmentVariable("EMAIL_SENDER_NAME")
+                ?? throw new InvalidOperationException("EMAIL_SENDER_NAME environment variable is missing.");
+            opt.SmtpHost = Environment.GetEnvironmentVariable("SMTP_HOST")
+                ?? throw new InvalidOperationException("SMTP_HOST environment variable is missing.");
+            opt.SmtpPort = int.TryParse(Environment.GetEnvironmentVariable("SMTP_PORT"), out var port) ? port : 587;
+            opt.SmtpUsername = Environment.GetEnvironmentVariable("SMTP_USERNAME")
+                ?? throw new InvalidOperationException("SMTP_USERNAME environment variable is missing.");
+            opt.VerificationCodeTemplatePath = configuration["Email:VerificationCodeTemplatePath"]
+                ?? "Templates/verification_code.html";
+        });
+        services.AddScoped<IEmailService, EmailService>();
 
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<ISessionService, SessionService>();
