@@ -30,7 +30,7 @@ public sealed class JwtProvider : IJwtProvider
             issuer:             issuer,
             audience:           audience,
             claims:             claims,
-            expires:            DateTime.UtcNow.AddHours(3),
+            expires:            DateTime.UtcNow.AddDays(180),
             signingCredentials: creds);
 
         return Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
