@@ -79,7 +79,7 @@ namespace PocketGrail.Api
             app.UseAuthorization();
 
             app.MapControllers();
-            app.MapHub<SessionHub>("/hubs/session");
+            app.MapHub<CampaignHub>("/hubs/campaign");
 
             app.Run();
         }

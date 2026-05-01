@@ -2,11 +2,11 @@ namespace PocketGrail.Domain.Entities;
 
 using Enums;
 
-public class Participant : BaseEntity
+public class CampaignParticipant : BaseEntity
 {
     public UserRole Role { get; set; }
-    public int SessionId { get; set; }
-    public Session Session { get; set; } = null!;
+    public int CampaignId { get; set; }
+    public Campaign Campaign { get; set; } = null!;
     public int UserId { get; set; }
     public User User { get; set; } = null!;
 }

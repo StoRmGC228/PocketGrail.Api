@@ -3,6 +3,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using CloudinaryDotNet;
 using PocketGrail.Application.Interfaces;
 using PocketGrail.Application.Services;
 using PocketGrail.Domain.Configuration;
@@ -42,8 +43,19 @@ public static class InfrastructureConfiguration
         });
         services.AddScoped<IEmailService, EmailService>();
 
-        services.AddScoped<ISessionRepository, SessionRepository>();
-        services.AddScoped<ISessionService, SessionService>();
+        var cloudinaryAccount = new Account(
+            Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME")
+                ?? throw new InvalidOperationException("CLOUDINARY_CLOUD_NAME environment variable is missing."),
+            Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY")
+                ?? throw new InvalidOperationException("CLOUDINARY_API_KEY environment variable is missing."),
+            Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET")
+                ?? throw new InvalidOperationException("CLOUDINARY_API_SECRET environment variable is missing.")
+        );
+        services.AddSingleton(new Cloudinary(cloudinaryAccount));
+        services.AddScoped<ICloudinaryService, CloudinaryService>();
+
+        services.AddScoped<ICampaignRepository, CampaignRepository>();
+        services.AddScoped<ICampaignService, CampaignService>();
         services.AddScoped<IUserRepository, UserRepository>();
 
         return services;

@@ -2,14 +2,14 @@ namespace PocketGrail.Api.Hubs;
 
 using Microsoft.AspNetCore.SignalR;
 
-public sealed class SessionHub : Hub
+public sealed class CampaignHub : Hub
 {
-    public async Task JoinSessionGroup(string code)
+    public async Task JoinCampaignGroup(string code)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, code);
     }
 
-    public async Task LeaveSessionGroup(string code)
+    public async Task LeaveCampaignGroup(string code)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, code);
     }

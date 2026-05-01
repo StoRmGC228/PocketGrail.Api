@@ -1,8 +1,8 @@
 namespace PocketGrail.Application.DTOs;
 
-public sealed class ParticipantDto
+public sealed class CampaignParticipantDto
 {
-    public int Id { get; init; }
     public int UserId { get; init; }
+    public string Username { get; init; } = string.Empty;
     public string Role { get; init; } = string.Empty;
 }

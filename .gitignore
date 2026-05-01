@@ -3,6 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Local dev launch settings — contains secrets (SMTP, JWT, Cloudinary credentials)
+**/Properties/launchSettings.json
+
 # User-specific files
 *.rsuser
 *.suo
