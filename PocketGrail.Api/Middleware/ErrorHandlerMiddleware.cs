@@ -41,7 +41,7 @@ public sealed class ErrorHandlerMiddleware
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Unauthorized."),
             InvalidOperationException => (HttpStatusCode.Conflict, exception.Message),
             KeyNotFoundException => (HttpStatusCode.NotFound, exception.Message),
-            _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
+            //_ => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
         };
 
         context.Response.ContentType = "application/json";

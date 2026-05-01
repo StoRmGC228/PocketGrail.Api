@@ -9,8 +9,8 @@ internal sealed class PocketGrailDbContext : DbContext
     {
     }
 
-    public DbSet<Session> Sessions => Set<Session>();
-    public DbSet<Participant> Participants => Set<Participant>();
+    public DbSet<Campaign> Campaigns => Set<Campaign>();
+    public DbSet<CampaignParticipant> CampaignParticipants => Set<CampaignParticipant>();
     public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

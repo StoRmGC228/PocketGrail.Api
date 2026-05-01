@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PocketGrail.Domain.Entities;
 
-internal sealed class ParticipantConfiguration : IEntityTypeConfiguration<Participant>
+internal sealed class CampaignParticipantConfiguration : IEntityTypeConfiguration<CampaignParticipant>
 {
-    public void Configure(EntityTypeBuilder<Participant> builder)
+    public void Configure(EntityTypeBuilder<CampaignParticipant> builder)
     {
         builder.HasKey(p => p.Id);
 
@@ -24,14 +24,17 @@ internal sealed class ParticipantConfiguration : IEntityTypeConfiguration<Partic
         builder.Property(p => p.UpdatedAt)
             .IsRequired();
 
-        builder.HasOne(p => p.Session)
-            .WithMany(s => s.Participants)
-            .HasForeignKey(p => p.SessionId)
+        builder.HasOne(p => p.Campaign)
+            .WithMany(c => c.Participants)
+            .HasForeignKey(p => p.CampaignId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(p => p.User)
             .WithMany()
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(p => new { p.CampaignId, p.UserId })
+            .IsUnique();
     }
 }
