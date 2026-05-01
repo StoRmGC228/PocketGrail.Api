@@ -58,7 +58,7 @@ public sealed class AuthController : ControllerBase
     }
 
     private void AppendAuthCookie(string token) =>
-        Response.Cookies.Append("MySecretCookies", token, BuildCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
+        Response.Cookies.Append("MySecretCookies", token, BuildCookieOptions(DateTimeOffset.UtcNow.AddDays(180)));
 
     private static CookieOptions BuildCookieOptions(DateTimeOffset? expires = null) =>
         new()
