@@ -3,6 +3,7 @@ namespace PocketGrail.Api.Controllers;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PocketGrail.Api.Helpers;
 using PocketGrail.Application.DTOs;
 using PocketGrail.Application.Interfaces;
 
@@ -35,7 +36,7 @@ public sealed class AuthController : ControllerBase
     public async Task<IActionResult> Verify([FromBody] VerifyCodeRequest request, CancellationToken ct)
     {
         var token = await _authService.VerifyCodeAsync(request, ct);
-        AppendAuthCookie(token);
+        CookieHelper.AppendAuthCookie(Response, token);
         return Ok(new AuthResponse());
     }
 
@@ -53,20 +54,7 @@ public sealed class AuthController : ControllerBase
     [HttpPost("logout")]
     public IActionResult Logout()
     {
-        Response.Cookies.Delete("MySecretCookies", BuildCookieOptions());
+        CookieHelper.DeleteAuthCookie(Response);
         return Ok(new { message = "Logged out successfully." });
     }
-
-    private void AppendAuthCookie(string token) =>
-        Response.Cookies.Append("MySecretCookies", token, BuildCookieOptions(DateTimeOffset.UtcNow.AddDays(180)));
-
-    private static CookieOptions BuildCookieOptions(DateTimeOffset? expires = null) =>
-        new()
-        {
-            HttpOnly = true,
-            Secure   = true,
-            SameSite = SameSiteMode.None,
-            Path     = "/",
-            Expires  = expires
-        };
 }

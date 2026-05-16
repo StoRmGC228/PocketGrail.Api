@@ -2,6 +2,7 @@ namespace PocketGrail.Application.Services;
 
 using PocketGrail.Application.DTOs;
 using PocketGrail.Application.Interfaces;
+using PocketGrail.Application.Mappers;
 using PocketGrail.Domain.Entities;
 using PocketGrail.Domain.Entities.Enums;
 
@@ -54,7 +55,7 @@ public sealed class CampaignService : ICampaignService
         await _repository.AddAsync(campaign, ct);
         await _repository.SaveChangesAsync(ct);
 
-        return MapToDto(campaign, includeParticipants: true);
+        return CampaignMapper.ToDto(campaign, includeParticipants: true);
     }
 
     public async Task<CampaignDto> JoinCampaignAsync(
@@ -104,7 +105,7 @@ public sealed class CampaignService : ICampaignService
 
         campaign.Participants.Add(participant);
 
-        return MapToDto(campaign, includeParticipants: true);
+        return CampaignMapper.ToDto(campaign, includeParticipants: true);
     }
 
     public async Task LeaveCampaignAsync(int campaignId, int userId, CancellationToken ct = default)
@@ -137,7 +138,7 @@ public sealed class CampaignService : ICampaignService
     public async Task<IReadOnlyList<CampaignDto>> GetActiveCampaignsAsync(CancellationToken ct = default)
     {
         var campaigns = await _repository.GetActiveAsync(ct);
-        return campaigns.Select(c => MapToDto(c, includeParticipants: false)).ToList();
+        return campaigns.Select(c => CampaignMapper.ToDto(c, includeParticipants: false)).ToList();
     }
 
     public async Task<IReadOnlyList<CampaignDto>> GetMyCampaignsAsync(
@@ -147,19 +148,19 @@ public sealed class CampaignService : ICampaignService
             ? await _repository.GetByDmOwnerIdAsync(userId, ct)
             : await _repository.GetByParticipantUserIdAsync(userId, ct);
 
-        return campaigns.Select(c => MapToDto(c, includeParticipants: false)).ToList();
+        return campaigns.Select(c => CampaignMapper.ToDto(c, includeParticipants: false)).ToList();
     }
 
     public async Task<CampaignDto?> GetByCodeAsync(string code, CancellationToken ct = default)
     {
         var campaign = await _repository.GetByCodeAsync(code, ct);
-        return campaign is null ? null : MapToDto(campaign, includeParticipants: true);
+        return campaign is null ? null : CampaignMapper.ToDto(campaign, includeParticipants: true);
     }
 
     public async Task<CampaignDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         var campaign = await _repository.GetByIdAsync(id, ct);
-        return campaign is null ? null : MapToDto(campaign, includeParticipants: true);
+        return campaign is null ? null : CampaignMapper.ToDto(campaign, includeParticipants: true);
     }
 
     private async Task<string> GenerateUniqueCodeAsync(CancellationToken ct)
@@ -174,27 +175,4 @@ public sealed class CampaignService : ICampaignService
         throw new InvalidOperationException("Failed to generate a unique campaign code after multiple attempts.");
     }
 
-    private static CampaignDto MapToDto(Campaign c, bool includeParticipants) => new()
-    {
-        Id = c.Id,
-        Name = c.Name,
-        ShortDescription = c.ShortDescription,
-        ConnectionCode = c.ConnectionCode,
-        ImageUrl = c.ImageUrl,
-        IsActive = c.IsActive,
-        DmOwnerId = c.DmOwnerId,
-        DmOwnerUsername = c.DmOwner?.Username ?? string.Empty,
-        ParticipantCount = c.Participants.Count,
-        CreatedAt = c.CreatedAt,
-        Participants = includeParticipants
-            ? c.Participants.Select(MapParticipantToDto).ToList()
-            : []
-    };
-
-    private static CampaignParticipantDto MapParticipantToDto(CampaignParticipant p) => new()
-    {
-        UserId = p.UserId,
-        Username = p.User?.Username ?? string.Empty,
-        Role = p.Role.ToString()
-    };
 }

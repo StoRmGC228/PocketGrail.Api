@@ -1,8 +1,8 @@
 namespace PocketGrail.Api.Controllers;
 
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PocketGrail.Api.Helpers;
 using PocketGrail.Application.DTOs;
 using PocketGrail.Application.Interfaces;
 
@@ -22,7 +22,7 @@ public sealed class CharactersController : ControllerBase
     [HttpGet("mine")]
     public async Task<IActionResult> GetMyCharacters(CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var characters = await _characterService.GetMyCharactersAsync(userId, ct);
         return Ok(characters);
     }
@@ -41,7 +41,7 @@ public sealed class CharactersController : ControllerBase
         [FromForm] CreateCharacterRequest request,
         CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var character = await _characterService.CreateCharacterAsync(request, userId, ct);
         return CreatedAtAction(nameof(GetById), new { id = character.Id }, character);
     }
@@ -53,7 +53,7 @@ public sealed class CharactersController : ControllerBase
         [FromForm] UpdateCharacterRequest request,
         CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var character = await _characterService.UpdateCharacterAsync(id, request, userId, ct);
         return Ok(character);
     }
@@ -62,7 +62,7 @@ public sealed class CharactersController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteCharacter(int id, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         await _characterService.DeleteCharacterAsync(id, userId, ct);
         return NoContent();
     }
@@ -71,7 +71,7 @@ public sealed class CharactersController : ControllerBase
     [HttpGet("{id:int}/sheet")]
     public async Task<IActionResult> GetCharacterDetail(int id, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var detail = await _characterService.GetCharacterDetailAsync(id, userId, ct);
         return detail is null ? NotFound() : Ok(detail);
     }
@@ -80,7 +80,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPut("{id:int}/stats")]
     public async Task<IActionResult> UpdateStats(int id, [FromBody] UpdateStatsRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var detail = await _characterService.UpdateStatsAsync(id, request, userId, ct);
         return Ok(detail);
     }
@@ -89,7 +89,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPut("{id:int}/vitals")]
     public async Task<IActionResult> UpdateVitals(int id, [FromBody] UpdateVitalsRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var detail = await _characterService.UpdateVitalsAsync(id, request, userId, ct);
         return Ok(detail);
     }
@@ -98,7 +98,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPut("{id:int}/wallet")]
     public async Task<IActionResult> UpdateWallet(int id, [FromBody] UpdateWalletRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var detail = await _characterService.UpdateWalletAsync(id, request, userId, ct);
         return Ok(detail);
     }
@@ -107,7 +107,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPut("{id:int}/image")]
     public async Task<IActionResult> UpdateImage(int id, [FromForm] UpdateCharacterImageRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var detail = await _characterService.UpdateImageAsync(id, request, userId, ct);
         return Ok(detail);
     }
@@ -116,7 +116,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPost("{id:int}/items")]
     public async Task<IActionResult> AddItem(int id, [FromBody] AddItemRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var item = await _characterService.AddItemAsync(id, request, userId, ct);
         return Ok(item);
     }
@@ -125,7 +125,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPut("{id:int}/items/{itemId:int}")]
     public async Task<IActionResult> UpdateItem(int id, int itemId, [FromBody] UpdateItemRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var item = await _characterService.UpdateItemAsync(id, itemId, request, userId, ct);
         return Ok(item);
     }
@@ -134,7 +134,7 @@ public sealed class CharactersController : ControllerBase
     [HttpDelete("{id:int}/items/{itemId:int}")]
     public async Task<IActionResult> DeleteItem(int id, int itemId, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         await _characterService.DeleteItemAsync(id, itemId, userId, ct);
         return NoContent();
     }
@@ -143,7 +143,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPost("{id:int}/spells")]
     public async Task<IActionResult> AddSpell(int id, [FromBody] AddSpellRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var spell = await _characterService.AddSpellAsync(id, request, userId, ct);
         return Ok(spell);
     }
@@ -152,7 +152,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPatch("{id:int}/spells/{spellId:int}/toggle-prepared")]
     public async Task<IActionResult> ToggleSpellPrepared(int id, int spellId, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var detail = await _characterService.ToggleSpellPreparedAsync(id, spellId, userId, ct);
         return Ok(detail);
     }
@@ -161,7 +161,7 @@ public sealed class CharactersController : ControllerBase
     [HttpDelete("{id:int}/spells/{spellId:int}")]
     public async Task<IActionResult> DeleteSpell(int id, int spellId, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         await _characterService.DeleteSpellAsync(id, spellId, userId, ct);
         return NoContent();
     }
@@ -170,7 +170,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPut("{id:int}/spell-slots")]
     public async Task<IActionResult> UpdateSpellSlot(int id, [FromBody] UpdateSpellSlotRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var slot = await _characterService.UpdateSpellSlotAsync(id, request, userId, ct);
         return Ok(slot);
     }
@@ -179,7 +179,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPost("{id:int}/feats")]
     public async Task<IActionResult> AddFeat(int id, [FromBody] AddFeatRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var feat = await _characterService.AddFeatAsync(id, request, userId, ct);
         return Ok(feat);
     }
@@ -188,7 +188,7 @@ public sealed class CharactersController : ControllerBase
     [HttpDelete("{id:int}/feats/{featId:int}")]
     public async Task<IActionResult> DeleteFeat(int id, int featId, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         await _characterService.DeleteFeatAsync(id, featId, userId, ct);
         return NoContent();
     }
@@ -197,7 +197,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPost("{id:int}/features")]
     public async Task<IActionResult> AddFeature(int id, [FromBody] AddFeatureRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var feature = await _characterService.AddFeatureAsync(id, request, userId, ct);
         return Ok(feature);
     }
@@ -206,7 +206,7 @@ public sealed class CharactersController : ControllerBase
     [HttpDelete("{id:int}/features/{featureId:int}")]
     public async Task<IActionResult> DeleteFeature(int id, int featureId, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         await _characterService.DeleteFeatureAsync(id, featureId, userId, ct);
         return NoContent();
     }
@@ -215,7 +215,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPost("{id:int}/proficiencies")]
     public async Task<IActionResult> AddProficiency(int id, [FromBody] AddProficiencyRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var proficiency = await _characterService.AddProficiencyAsync(id, request, userId, ct);
         return Ok(proficiency);
     }
@@ -224,7 +224,7 @@ public sealed class CharactersController : ControllerBase
     [HttpDelete("{id:int}/proficiencies/{proficiencyId:int}")]
     public async Task<IActionResult> DeleteProficiency(int id, int proficiencyId, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         await _characterService.DeleteProficiencyAsync(id, proficiencyId, userId, ct);
         return NoContent();
     }
@@ -233,7 +233,7 @@ public sealed class CharactersController : ControllerBase
     [HttpGet("{id:int}/allies")]
     public async Task<IActionResult> GetAllies(int id, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var allies = await _characterService.GetAlliesAsync(id, userId, ct);
         return Ok(allies);
     }
@@ -242,7 +242,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPost("{id:int}/classes")]
     public async Task<IActionResult> AddCharacterClass(int id, [FromBody] AddCharacterClassRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var result = await _characterService.AddCharacterClassAsync(id, request, userId, ct);
         return Ok(result);
     }
@@ -251,7 +251,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPost("{id:int}/classes/{classId:int}/level-up")]
     public async Task<IActionResult> LevelUp(int id, int classId, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var result = await _characterService.LevelUpAsync(id, classId, userId, ct);
         return Ok(result);
     }
@@ -260,7 +260,7 @@ public sealed class CharactersController : ControllerBase
     [HttpPatch("{id:int}/classes/{classId:int}")]
     public async Task<IActionResult> UpdateCharacterClass(int id, int classId, [FromBody] UpdateCharacterClassRequest request, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var result = await _characterService.UpdateCharacterClassAsync(id, classId, request, userId, ct);
         return Ok(result);
     }
@@ -269,15 +269,9 @@ public sealed class CharactersController : ControllerBase
     [HttpDelete("{id:int}/classes/{classId:int}")]
     public async Task<IActionResult> DeleteCharacterClass(int id, int classId, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         await _characterService.DeleteCharacterClassAsync(id, classId, userId, ct);
         return NoContent();
     }
 
-    private int GetUserIdFromClaims()
-    {
-        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? throw new UnauthorizedAccessException("User id claim missing.");
-        return int.Parse(raw);
-    }
 }

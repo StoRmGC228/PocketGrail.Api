@@ -3,6 +3,7 @@ namespace PocketGrail.Api.Controllers;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PocketGrail.Api.Helpers;
 using PocketGrail.Application.DTOs;
 using PocketGrail.Application.Interfaces;
 
@@ -25,7 +26,7 @@ public sealed class CampaignsController : ControllerBase
         [FromForm] CreateCampaignRequest request,
         CancellationToken ct)
     {
-        var dmUserId = GetUserIdFromClaims();
+        var dmUserId = ClaimsHelper.GetUserId(User);
         var campaign = await _campaignService.CreateCampaignAsync(request, dmUserId, ct);
         return CreatedAtAction(nameof(GetByCode), new { code = campaign.ConnectionCode }, campaign);
     }
@@ -36,7 +37,7 @@ public sealed class CampaignsController : ControllerBase
         [FromBody] JoinCampaignRequest request,
         CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var campaign = await _campaignService.JoinCampaignAsync(request, userId, ct);
         return Ok(campaign);
     }
@@ -53,7 +54,7 @@ public sealed class CampaignsController : ControllerBase
     [HttpGet("mine")]
     public async Task<IActionResult> GetMyCampaigns(CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         var role = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
         var campaigns = await _campaignService.GetMyCampaignsAsync(userId, role, ct);
         return Ok(campaigns);
@@ -80,7 +81,7 @@ public sealed class CampaignsController : ControllerBase
     [Authorize(Policy = "DungeonMasterOnly")]
     public async Task<IActionResult> DeleteCampaign(int id, CancellationToken ct)
     {
-        var dmUserId = GetUserIdFromClaims();
+        var dmUserId = ClaimsHelper.GetUserId(User);
         await _campaignService.DeleteCampaignAsync(id, dmUserId, ct);
         return NoContent();
     }
@@ -89,15 +90,9 @@ public sealed class CampaignsController : ControllerBase
     [HttpDelete("{id:int}/leave")]
     public async Task<IActionResult> LeaveCampaign(int id, CancellationToken ct)
     {
-        var userId = GetUserIdFromClaims();
+        var userId = ClaimsHelper.GetUserId(User);
         await _campaignService.LeaveCampaignAsync(id, userId, ct);
         return NoContent();
     }
 
-    private int GetUserIdFromClaims()
-    {
-        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? throw new UnauthorizedAccessException("User id claim missing.");
-        return int.Parse(raw);
-    }
 }

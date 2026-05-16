@@ -2,6 +2,7 @@ namespace PocketGrail.Application.Services;
 
 using Microsoft.Extensions.Caching.Memory;
 using PocketGrail.Application.DTOs;
+using PocketGrail.Application.Helpers;
 using PocketGrail.Application.Interfaces;
 using PocketGrail.Domain.Entities;
 using PocketGrail.Domain.Entities.Enums;
@@ -73,7 +74,7 @@ public sealed class AuthService : IAuthService
     public async Task<string> VerifyCodeAsync(VerifyCodeRequest request, CancellationToken ct = default)
     {
         var email    = request.Email.ToLowerInvariant().Trim();
-        var cacheKey = GetCacheKey(email);
+        var cacheKey = CacheKeys.VerificationCode(email);
 
         if (!_cache.TryGetValue<string>(cacheKey, out var storedCode) || storedCode != request.Code)
             throw new UnauthorizedAccessException("Invalid or expired verification code.");
@@ -89,9 +90,7 @@ public sealed class AuthService : IAuthService
     private async Task SendCodeAsync(string email, string username, CancellationToken ct)
     {
         var code = CodeGeneratorService.Generate();
-        _cache.Set(GetCacheKey(email), code, CodeExpiry);
+        _cache.Set(CacheKeys.VerificationCode(email), code, CodeExpiry);
         await _emailService.SendVerificationCodeAsync(email, username, code, ct);
     }
-
-    private static string GetCacheKey(string email) => $"verify:{email}";
 }
