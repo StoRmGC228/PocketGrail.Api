@@ -3,6 +3,7 @@ namespace PocketGrail.Application.Services;
 using PocketGrail.Application.Data;
 using PocketGrail.Application.DTOs;
 using PocketGrail.Application.Interfaces;
+using PocketGrail.Application.Mappers;
 using PocketGrail.Domain.Entities;
 
 public sealed class CharacterService : ICharacterService
@@ -21,13 +22,13 @@ public sealed class CharacterService : ICharacterService
     public async Task<IReadOnlyList<CharacterDto>> GetMyCharactersAsync(int userId, CancellationToken ct = default)
     {
         var characters = await _repository.GetByOwnerIdAsync(userId, ct);
-        return characters.Select(MapToDto).ToList();
+        return characters.Select(CharacterMapper.ToDto).ToList();
     }
 
     public async Task<CharacterDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         var character = await _repository.GetByIdAsync(id, ct);
-        return character is null ? null : MapToDto(character);
+        return character is null ? null : CharacterMapper.ToDto(character);
     }
 
     public async Task<CharacterDetailDto?> GetCharacterDetailAsync(int id, int userId, CancellationToken ct = default)
@@ -35,7 +36,7 @@ public sealed class CharacterService : ICharacterService
         var character = await _repository.GetDetailByIdAsync(id, ct);
         if (character is null) return null;
         if (character.OwnerId != userId) throw new UnauthorizedAccessException("Access denied.");
-        return MapToDetailDto(character);
+        return CharacterMapper.ToDetailDto(character);
     }
 
     // ── Create / Update / Delete ───────────────────────────────────────────────
@@ -78,7 +79,7 @@ public sealed class CharacterService : ICharacterService
 
         var created = await _repository.GetByIdAsync(character.Id, ct)
             ?? throw new InvalidOperationException("Failed to retrieve created character.");
-        return MapToDto(created);
+        return CharacterMapper.ToDto(created);
     }
 
     public async Task<CharacterDto> UpdateCharacterAsync(
@@ -105,7 +106,7 @@ public sealed class CharacterService : ICharacterService
         character.UpdatedAt = DateTime.UtcNow;
         await _repository.SaveChangesAsync(ct);
 
-        return MapToDto(character);
+        return CharacterMapper.ToDto(character);
     }
 
     public async Task DeleteCharacterAsync(int id, int userId, CancellationToken ct = default)
@@ -134,7 +135,7 @@ public sealed class CharacterService : ICharacterService
         if (request.Alignment is not null) c.Alignment = request.Alignment;
         c.UpdatedAt = DateTime.UtcNow;
         await _repository.SaveChangesAsync(ct);
-        return MapToDetailDto(c);
+        return CharacterMapper.ToDetailDto(c);
     }
 
     public async Task<CharacterDetailDto> UpdateVitalsAsync(int id, UpdateVitalsRequest request, int userId, CancellationToken ct = default)
@@ -150,7 +151,7 @@ public sealed class CharacterService : ICharacterService
         if (request.DeathFailures.HasValue) c.DeathFailures = request.DeathFailures.Value;
         c.UpdatedAt = DateTime.UtcNow;
         await _repository.SaveChangesAsync(ct);
-        return MapToDetailDto(c);
+        return CharacterMapper.ToDetailDto(c);
     }
 
     public async Task<CharacterDetailDto> UpdateWalletAsync(int id, UpdateWalletRequest request, int userId, CancellationToken ct = default)
@@ -166,7 +167,7 @@ public sealed class CharacterService : ICharacterService
         c.Wallet = wallet;
         c.UpdatedAt = DateTime.UtcNow;
         await _repository.SaveChangesAsync(ct);
-        return MapToDetailDto(c);
+        return CharacterMapper.ToDetailDto(c);
     }
 
     public async Task<CharacterDetailDto> UpdateImageAsync(int id, UpdateCharacterImageRequest request, int userId, CancellationToken ct = default)
@@ -180,7 +181,7 @@ public sealed class CharacterService : ICharacterService
         c.ImageCropHeight = request.CropHeight;
         c.UpdatedAt = DateTime.UtcNow;
         await _repository.SaveChangesAsync(ct);
-        return MapToDetailDto(c);
+        return CharacterMapper.ToDetailDto(c);
     }
 
     // ── Items ──────────────────────────────────────────────────────────────────
@@ -220,7 +221,7 @@ public sealed class CharacterService : ICharacterService
             await _repository.SaveChangesAsync(ct);
         }
 
-        return MapItemDto(item, request.IsEquipped, request.IsAttuned, request.Quantity);
+        return CharacterMapper.ToItemDto(item, request.IsEquipped, request.IsAttuned, request.Quantity);
     }
 
     public async Task<ItemDto> UpdateItemAsync(int characterId, int itemId, UpdateItemRequest request, int userId, CancellationToken ct = default)
@@ -234,7 +235,7 @@ public sealed class CharacterService : ICharacterService
         if (request.IsAttuned.HasValue) junction.IsAttuned = request.IsAttuned.Value;
         if (request.Quantity.HasValue) junction.Quantity = request.Quantity.Value;
         await _repository.SaveChangesAsync(ct);
-        return MapItemDto(item, junction.IsEquipped, junction.IsAttuned, junction.Quantity);
+        return CharacterMapper.ToItemDto(item, junction.IsEquipped, junction.IsAttuned, junction.Quantity);
     }
 
     public async Task DeleteItemAsync(int characterId, int itemId, int userId, CancellationToken ct = default)
@@ -274,7 +275,7 @@ public sealed class CharacterService : ICharacterService
             await _repository.SaveChangesAsync(ct);
         }
 
-        return MapSpellDto(spell, request.Prepared);
+        return CharacterMapper.ToSpellDto(spell, request.Prepared);
     }
 
     public async Task<SpellDto> ToggleSpellPreparedAsync(int characterId, int spellId, int userId, CancellationToken ct = default)
@@ -286,7 +287,7 @@ public sealed class CharacterService : ICharacterService
             ?? throw new KeyNotFoundException("Spell junction not found on this character.");
         junction.Prepared = !junction.Prepared;
         await _repository.SaveChangesAsync(ct);
-        return MapSpellDto(spell, junction.Prepared);
+        return CharacterMapper.ToSpellDto(spell, junction.Prepared);
     }
 
     public async Task DeleteSpellAsync(int characterId, int spellId, int userId, CancellationToken ct = default)
@@ -353,7 +354,7 @@ public sealed class CharacterService : ICharacterService
         await _repository.SaveChangesAsync(ct);
 
         var junction = feature.CharacterFeatures.FirstOrDefault(cf => cf.CharacterId == characterId);
-        return MapFeatureDto(feature, junction?.IsAutoAdded ?? false);
+        return CharacterMapper.ToFeatureDto(feature, junction?.IsAutoAdded ?? false);
     }
 
     public async Task DeleteFeatureAsync(int characterId, int featureId, int userId, CancellationToken ct = default)
@@ -424,8 +425,8 @@ public sealed class CharacterService : ICharacterService
                 CharacterId = c.Id,
                 CharacterName = c.Name,
                 Race = c.Race,
-                Classes = c.Classes.Select(MapClassDto).ToList(),
-                ClassDisplay = FormatClassDisplay(c.Classes),
+                Classes = c.Classes.Select(CharacterMapper.ToClassDto).ToList(),
+                ClassDisplay = CharacterMapper.FormatClassDisplay(c.Classes),
                 Level = c.Level,
                 CurrentHp = c.CurrentHp,
                 MaxHp = c.MaxHp,
@@ -454,7 +455,7 @@ public sealed class CharacterService : ICharacterService
 
         var reloaded = await _repository.GetDetailByIdAsync(characterId, ct)!;
         var newClass = reloaded!.Classes.First(cc => cc.ClassName.Equals(request.ClassName, StringComparison.OrdinalIgnoreCase));
-        return MapClassDto(newClass);
+        return CharacterMapper.ToClassDto(newClass);
     }
 
     public async Task<CharacterClassDto> LevelUpAsync(
@@ -473,7 +474,7 @@ public sealed class CharacterService : ICharacterService
         await _repository.SaveChangesAsync(ct);
         await SeedClassFeaturesAtLevel(characterId, classEntry.ClassName, classEntry.ClassLevel, ct);
 
-        return MapClassDto(classEntry);
+        return CharacterMapper.ToClassDto(classEntry);
     }
 
     public async Task<CharacterClassDto> UpdateCharacterClassAsync(
@@ -489,7 +490,7 @@ public sealed class CharacterService : ICharacterService
 
         classEntry.UpdatedAt = DateTime.UtcNow;
         await _repository.SaveChangesAsync(ct);
-        return MapClassDto(classEntry);
+        return CharacterMapper.ToClassDto(classEntry);
     }
 
     public async Task DeleteCharacterClassAsync(int characterId, int classId, int userId, CancellationToken ct = default)
@@ -654,8 +655,6 @@ public sealed class CharacterService : ICharacterService
         await _repository.SaveChangesAsync(ct);
     }
 
-    // ── Mapping helpers ────────────────────────────────────────────────────────
-
     private async Task<Character> GetOwnedDetailAsync(int id, int userId, CancellationToken ct)
     {
         var c = await _repository.GetDetailByIdAsync(id, ct)
@@ -663,132 +662,4 @@ public sealed class CharacterService : ICharacterService
         if (c.OwnerId != userId) throw new UnauthorizedAccessException("Access denied.");
         return c;
     }
-
-    private static CharacterDto MapToDto(Character c) => new()
-    {
-        Id = c.Id,
-        Name = c.Name,
-        Race = c.Race,
-        Classes = c.Classes.Select(MapClassDto).ToList(),
-        ClassDisplay = FormatClassDisplay(c.Classes),
-        Level = c.Level,
-        CurrentHp = c.CurrentHp,
-        MaxHp = c.MaxHp,
-        ImageUrl = c.ImageUrl,
-        OwnerId = c.OwnerId,
-        OwnerUsername = c.Owner?.Username ?? string.Empty,
-        CampaignId = c.CampaignId,
-        CampaignName = c.Campaign?.Name,
-        CreatedAt = c.CreatedAt,
-        UpdatedAt = c.UpdatedAt
-    };
-
-    private static CharacterDetailDto MapToDetailDto(Character c) => new()
-    {
-        Id = c.Id,
-        Name = c.Name,
-        Race = c.Race,
-        Classes = c.Classes.Select(MapClassDto).ToList(),
-        ClassDisplay = FormatClassDisplay(c.Classes),
-        Level = c.Level,
-        ProficiencyBonus = c.ProficiencyBonus,
-        CurrentHp = c.CurrentHp,
-        MaxHp = c.MaxHp,
-        TempHp = c.TempHp,
-        ImageUrl = c.ImageUrl,
-        ImageCropX = c.ImageCropX,
-        ImageCropY = c.ImageCropY,
-        ImageCropWidth = c.ImageCropWidth,
-        ImageCropHeight = c.ImageCropHeight,
-        StrScore = c.StrScore,
-        DexScore = c.DexScore,
-        ConScore = c.ConScore,
-        IntScore = c.IntScore,
-        WisScore = c.WisScore,
-        ChaScore = c.ChaScore,
-        ArmorClass = c.ArmorClass,
-        Speed = c.Speed,
-        XpPoints = c.XpPoints,
-        HasInspiration = c.HasInspiration,
-        Exhaustion = c.Exhaustion,
-        DeathSuccesses = c.DeathSuccesses,
-        DeathFailures = c.DeathFailures,
-        CpCoins = c.Wallet?.CpCoins ?? 0,
-        SpCoins = c.Wallet?.SpCoins ?? 0,
-        EpCoins = c.Wallet?.EpCoins ?? 0,
-        GpCoins = c.Wallet?.GpCoins ?? 0,
-        PpCoins = c.Wallet?.PpCoins ?? 0,
-        SpellAbility = c.SpellAbility,
-        Alignment = c.Alignment,
-        BackgroundStory = c.BackgroundStory,
-        Appearance = c.Appearance,
-        Notes = c.Notes,
-        OwnerId = c.OwnerId,
-        OwnerUsername = c.Owner?.Username ?? string.Empty,
-        CampaignId = c.CampaignId,
-        CampaignName = c.Campaign?.Name,
-        Items = c.Items.Select(i =>
-        {
-            var j = i.CharacterItems.FirstOrDefault(ci => ci.CharacterId == c.Id);
-            return MapItemDto(i, j?.IsEquipped ?? false, j?.IsAttuned ?? false, j?.Quantity ?? 1);
-        }).ToList(),
-        Spells = c.Spells.Select(s =>
-        {
-            var j = s.CharacterSpells.FirstOrDefault(cs => cs.CharacterId == c.Id);
-            return MapSpellDto(s, j?.Prepared ?? true);
-        }).ToList(),
-        Feats = c.Feats.Select(f => new FeatDto { Id = f.Id, Name = f.Name, Requirement = f.Requirement, Description = f.Description }).ToList(),
-        Features = c.Features.Select(f =>
-        {
-            var j = f.CharacterFeatures.FirstOrDefault(cf => cf.CharacterId == c.Id);
-            return MapFeatureDto(f, j?.IsAutoAdded ?? false);
-        }).ToList(),
-        Proficiencies = c.Proficiencies.Select(p =>
-        {
-            var j = p.CharacterProficiencies.FirstOrDefault(cp => cp.CharacterId == c.Id);
-            return new ProficiencyDto { Id = p.Id, Name = p.Name, ProficiencyType = p.ProficiencyType, HasExpertise = j?.HasExpertise ?? false, AbilityKey = j?.AbilityKey };
-        }).ToList(),
-        SpellSlots = c.SpellSlots.Select(s => new SpellSlotDto { Id = s.Id, SlotLevel = s.SlotLevel, TotalSlots = s.TotalSlots, RemainingSlots = s.RemainingSlots }).ToList(),
-        CreatedAt = c.CreatedAt,
-        UpdatedAt = c.UpdatedAt
-    };
-
-    private static CharacterClassDto MapClassDto(CharacterClass cc) => new()
-    {
-        Id = cc.Id,
-        ClassName = cc.ClassName,
-        ClassLevel = cc.ClassLevel,
-        HitDice = cc.HitDice,
-        Subclass = cc.Subclass,
-        TotalHitDice = cc.TotalHitDice,
-        UsedHitDice = cc.UsedHitDice
-    };
-
-    private static string FormatClassDisplay(ICollection<CharacterClass> classes) =>
-        classes.Count == 0
-            ? string.Empty
-            : string.Join(" / ", classes.OrderByDescending(c => c.ClassLevel).Select(c => $"{c.ClassName} {c.ClassLevel}"));
-
-    private static ItemDto MapItemDto(Item i, bool equipped, bool attuned, int qty) => new()
-    {
-        Id = i.Id, Name = i.Name, Description = i.Description, Rarity = i.Rarity, Category = i.Category,
-        Weight = i.Weight, Cost = i.Cost, IsWeapon = i.IsWeapon, IsMagical = i.IsMagical,
-        AtkMod = i.AtkMod, Damage = i.Damage, DamageType = i.DamageType,
-        WeaponProperties = i.WeaponProperties, ChargesInfo = i.ChargesInfo, RechargeType = i.RechargeType,
-        Tags = i.Tags, IsEquipped = equipped, IsAttuned = attuned, Quantity = qty
-    };
-
-    private static SpellDto MapSpellDto(Spell s, bool prepared) => new()
-    {
-        Id = s.Id, Name = s.Name, Level = s.Level, School = s.School, Range = s.Range,
-        CastingTime = s.CastingTime, Concentration = s.Concentration, IsRitual = s.IsRitual,
-        Components = s.Components, Prepared = prepared
-    };
-
-    private static FeatureDto MapFeatureDto(Feature f, bool autoAdded) => new()
-    {
-        Id = f.Id, Name = f.Name, Description = f.Description, FeatureType = f.FeatureType,
-        FeatureLevel = f.FeatureLevel, SourceClass = f.SourceClass, SourceRace = f.SourceRace,
-        IsAutoAdded = autoAdded
-    };
 }
