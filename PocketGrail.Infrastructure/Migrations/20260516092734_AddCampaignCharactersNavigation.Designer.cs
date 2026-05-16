@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PocketGrail.Infrastructure;
@@ -11,9 +12,11 @@ using PocketGrail.Infrastructure;
 namespace PocketGrail.Infrastructure.Migrations
 {
     [DbContext(typeof(PocketGrailDbContext))]
-    partial class PocketGrailDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260516092734_AddCampaignCharactersNavigation")]
+    partial class AddCampaignCharactersNavigation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -142,6 +145,9 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.Property<int>("ConScore")
                         .HasColumnType("integer");
 
+                    b.Property<int>("CpCoins")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -157,7 +163,13 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.Property<int>("DexScore")
                         .HasColumnType("integer");
 
+                    b.Property<int>("EpCoins")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Exhaustion")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GpCoins")
                         .HasColumnType("integer");
 
                     b.Property<bool>("HasInspiration")
@@ -200,10 +212,16 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.Property<int>("OwnerId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("PpCoins")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Race")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<int>("SpCoins")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Speed")
                         .HasColumnType("integer");
@@ -380,46 +398,6 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.HasIndex("SpellId");
 
                     b.ToTable("CharacterSpells");
-                });
-
-            modelBuilder.Entity("PocketGrail.Domain.Entities.CharacterWallet", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CharacterId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CpCoins")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("EpCoins")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("GpCoins")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PpCoins")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SpCoins")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CharacterId")
-                        .IsUnique();
-
-                    b.ToTable("CharacterWallets");
                 });
 
             modelBuilder.Entity("PocketGrail.Domain.Entities.Feat", b =>
@@ -856,17 +834,6 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.Navigation("Spell");
                 });
 
-            modelBuilder.Entity("PocketGrail.Domain.Entities.CharacterWallet", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.Character", "Character")
-                        .WithOne("Wallet")
-                        .HasForeignKey("PocketGrail.Domain.Entities.CharacterWallet", "CharacterId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Character");
-                });
-
             modelBuilder.Entity("PocketGrail.Domain.Entities.SpellSlot", b =>
                 {
                     b.HasOne("PocketGrail.Domain.Entities.Character", "Character")
@@ -890,8 +857,6 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.Navigation("Classes");
 
                     b.Navigation("SpellSlots");
-
-                    b.Navigation("Wallet");
                 });
 
             modelBuilder.Entity("PocketGrail.Domain.Entities.Feature", b =>

@@ -11,4 +11,5 @@ public class Campaign : BaseEntity
     public int DmOwnerId { get; set; }
     public User DmOwner { get; set; } = null!;
     public ICollection<CampaignParticipant> Participants { get; set; } = new List<CampaignParticipant>();
+    public ICollection<Character> Characters { get; set; } = [];
 }

@@ -57,6 +57,8 @@ public static class InfrastructureConfiguration
         services.AddScoped<ICampaignRepository, CampaignRepository>();
         services.AddScoped<ICampaignService, CampaignService>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ICharacterRepository, CharacterRepository>();
+        services.AddScoped<ICharacterService, CharacterService>();
 
         return services;
     }

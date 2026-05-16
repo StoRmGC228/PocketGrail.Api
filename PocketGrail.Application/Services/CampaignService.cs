@@ -25,7 +25,7 @@ public sealed class CampaignService : ICampaignService
 
         string? imageUrl = null;
         if (request.Image is not null)
-            imageUrl = await _cloudinaryService.UploadImageAsync(request.Image, ct);
+            imageUrl = await _cloudinaryService.UploadImageAsync(request.Image, ct: ct);
 
         var campaign = new Campaign
         {
