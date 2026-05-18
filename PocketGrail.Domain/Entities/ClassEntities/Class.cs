@@ -17,9 +17,12 @@ namespace PocketGrail.Domain.Entities.ClassEntities
         public int TotalHitDice { get; set; }
         public int UsedHitDice { get; set; }
         public string HitDice { get; set; } = string.Empty;
+        public int SkillChoiceCount { get; set; }
         public IEnumerable<Subclass> Subclasses { get; set; }
         public IEnumerable<CharacterClass> Characters { get; set; }
         public IEnumerable<ClassFeature> ClassFeatures { get; set; }
         public List<ClassSavingThrowProficiency> SavingThrows { get; set; } = [];
+        public List<ClassSpellSlotTemplate> SpellSlotTemplates { get; set; } = [];
+        public List<MulticlassPrerequisite> MulticlassPrerequisites { get; set; } = [];
     }
 }

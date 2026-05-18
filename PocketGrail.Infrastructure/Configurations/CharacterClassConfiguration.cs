@@ -23,6 +23,12 @@ internal sealed class CharacterClassConfiguration : IEntityTypeConfiguration<Cha
             .HasForeignKey(cc => cc.ClassId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(cc => cc.CharacterSubclass)
+            .WithMany()
+            .HasForeignKey(cc => cc.CharacterSubclassId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(cc => new { cc.CharacterId, cc.ClassId })
             .IsUnique();
     }

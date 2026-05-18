@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PocketGrail.Infrastructure;
@@ -11,9 +12,11 @@ using PocketGrail.Infrastructure;
 namespace PocketGrail.Infrastructure.Migrations
 {
     [DbContext(typeof(PocketGrailDbContext))]
-    partial class PocketGrailDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518082856_RemoveCharacterFeatureJunction")]
+    partial class RemoveCharacterFeatureJunction
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -24,13 +27,13 @@ namespace PocketGrail.Infrastructure.Migrations
 
             modelBuilder.Entity("CharacterFeature", b =>
                 {
-                    b.Property<int>("CharacterId")
+                    b.Property<int>("CharactersId")
                         .HasColumnType("integer");
 
                     b.Property<int>("FeaturesId")
                         .HasColumnType("integer");
 
-                    b.HasKey("CharacterId", "FeaturesId");
+                    b.HasKey("CharactersId", "FeaturesId");
 
                     b.HasIndex("FeaturesId");
 
@@ -95,66 +98,6 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.HasIndex("WeaponsId");
 
                     b.ToTable("CharacterProficienciesWeaponProficiencies");
-                });
-
-            modelBuilder.Entity("ClassFeatureArmorGrants", b =>
-                {
-                    b.Property<int>("ArmorGrantsId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ClassFeatureId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("ArmorGrantsId", "ClassFeatureId");
-
-                    b.HasIndex("ClassFeatureId");
-
-                    b.ToTable("ClassFeatureArmorGrants");
-                });
-
-            modelBuilder.Entity("ClassFeatureInstrumentGrants", b =>
-                {
-                    b.Property<int>("ClassFeatureId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("InstrumentGrantsId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("ClassFeatureId", "InstrumentGrantsId");
-
-                    b.HasIndex("InstrumentGrantsId");
-
-                    b.ToTable("ClassFeatureInstrumentGrants");
-                });
-
-            modelBuilder.Entity("ClassFeatureLanguageGrants", b =>
-                {
-                    b.Property<int>("ClassFeatureId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LanguageGrantsId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("ClassFeatureId", "LanguageGrantsId");
-
-                    b.HasIndex("LanguageGrantsId");
-
-                    b.ToTable("ClassFeatureLanguageGrants");
-                });
-
-            modelBuilder.Entity("ClassFeatureWeaponGrants", b =>
-                {
-                    b.Property<int>("ClassFeatureId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("WeaponGrantsId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("ClassFeatureId", "WeaponGrantsId");
-
-                    b.HasIndex("WeaponGrantsId");
-
-                    b.ToTable("ClassFeatureWeaponGrants");
                 });
 
             modelBuilder.Entity("PocketGrail.Domain.Entities.Campaign", b =>
@@ -643,28 +586,22 @@ namespace PocketGrail.Infrastructure.Migrations
 
                     b.Property<string>("HitDice")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
+                        .HasColumnType("text");
 
                     b.Property<int>("Level")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ShortDesсription")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("SkillChoiceCount")
-                        .HasColumnType("integer");
-
                     b.Property<string>("SpellAbility")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("text");
 
                     b.Property<int>("TotalHitDice")
                         .HasColumnType("integer");
@@ -677,10 +614,7 @@ namespace PocketGrail.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Classes");
+                    b.ToTable("Class");
                 });
 
             modelBuilder.Entity("PocketGrail.Domain.Entities.ClassEntities.ClassSavingThrowProficiency", b =>
@@ -713,71 +647,6 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.ToTable("ClassSavingThrowProficiencies");
                 });
 
-            modelBuilder.Entity("PocketGrail.Domain.Entities.ClassEntities.ClassSpellSlotTemplate", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ClassId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ClassLevel")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("SpellSlotLevel")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TotalSlots")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClassId", "ClassLevel", "SpellSlotLevel")
-                        .IsUnique();
-
-                    b.ToTable("ClassSpellSlotTemplates");
-                });
-
-            modelBuilder.Entity("PocketGrail.Domain.Entities.ClassEntities.MulticlassPrerequisite", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ClassId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("MinimumScore")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RequiredAbility")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClassId", "RequiredAbility")
-                        .IsUnique();
-
-                    b.ToTable("MulticlassPrerequisites");
-                });
-
             modelBuilder.Entity("PocketGrail.Domain.Entities.ClassEntities.Subclass", b =>
                 {
                     b.Property<int>("Id")
@@ -794,12 +663,10 @@ namespace PocketGrail.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ShortDescription")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -808,7 +675,7 @@ namespace PocketGrail.Infrastructure.Migrations
 
                     b.HasIndex("ClassId");
 
-                    b.ToTable("Subclasses");
+                    b.ToTable("Subclass");
                 });
 
             modelBuilder.Entity("PocketGrail.Domain.Entities.Feat", b =>
@@ -852,7 +719,6 @@ namespace PocketGrail.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Discriminator")
@@ -860,8 +726,21 @@ namespace PocketGrail.Infrastructure.Migrations
                         .HasMaxLength(13)
                         .HasColumnType("character varying(13)");
 
+                    b.Property<int?>("FeatureLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FeatureType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SourceClass")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SourceRace")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -1035,57 +914,6 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.ToTable("WeaponProficiencies");
                 });
 
-            modelBuilder.Entity("PocketGrail.Domain.Entities.Race", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BaseSpeed")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ChaBonus")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ConBonus")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DexBonus")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("FlexibleBonusPoints")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("IntBonus")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int>("StrBonus")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("WisBonus")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Races");
-                });
-
             modelBuilder.Entity("PocketGrail.Domain.Entities.Spell", b =>
                 {
                     b.Property<int>("Id")
@@ -1204,72 +1032,16 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("RaceArmorGrants", b =>
-                {
-                    b.Property<int>("ArmorGrantsId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RaceId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("ArmorGrantsId", "RaceId");
-
-                    b.HasIndex("RaceId");
-
-                    b.ToTable("RaceArmorGrants");
-                });
-
-            modelBuilder.Entity("RaceInstrumentGrants", b =>
-                {
-                    b.Property<int>("InstrumentGrantsId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RaceId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("InstrumentGrantsId", "RaceId");
-
-                    b.HasIndex("RaceId");
-
-                    b.ToTable("RaceInstrumentGrants");
-                });
-
-            modelBuilder.Entity("RaceLanguageGrants", b =>
-                {
-                    b.Property<int>("LanguageGrantsId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RaceId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("LanguageGrantsId", "RaceId");
-
-                    b.HasIndex("RaceId");
-
-                    b.ToTable("RaceLanguageGrants");
-                });
-
-            modelBuilder.Entity("RaceWeaponGrants", b =>
-                {
-                    b.Property<int>("RaceId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("WeaponGrantsId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("RaceId", "WeaponGrantsId");
-
-                    b.HasIndex("WeaponGrantsId");
-
-                    b.ToTable("RaceWeaponGrants");
-                });
-
             modelBuilder.Entity("PocketGrail.Domain.Entities.ClassEntities.ClassFeature", b =>
                 {
                     b.HasBaseType("PocketGrail.Domain.Entities.Feature");
 
                     b.Property<int>("ClassId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("DescriptionText")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<int>("GainingLevel")
                         .HasColumnType("integer");
@@ -1279,23 +1051,11 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.HasDiscriminator().HasValue("ClassFeature");
                 });
 
-            modelBuilder.Entity("PocketGrail.Domain.Entities.RaceFeature", b =>
-                {
-                    b.HasBaseType("PocketGrail.Domain.Entities.Feature");
-
-                    b.Property<int>("RaceId")
-                        .HasColumnType("integer");
-
-                    b.HasIndex("RaceId");
-
-                    b.HasDiscriminator().HasValue("RaceFeature");
-                });
-
             modelBuilder.Entity("CharacterFeature", b =>
                 {
                     b.HasOne("PocketGrail.Domain.Entities.Characters.Character", null)
                         .WithMany()
-                        .HasForeignKey("CharacterId")
+                        .HasForeignKey("CharactersId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1366,66 +1126,6 @@ namespace PocketGrail.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("ClassFeatureArmorGrants", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.Proficiencies.ArmorProficiency", null)
-                        .WithMany()
-                        .HasForeignKey("ArmorGrantsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PocketGrail.Domain.Entities.ClassEntities.ClassFeature", null)
-                        .WithMany()
-                        .HasForeignKey("ClassFeatureId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("ClassFeatureInstrumentGrants", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.ClassEntities.ClassFeature", null)
-                        .WithMany()
-                        .HasForeignKey("ClassFeatureId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PocketGrail.Domain.Entities.Instrument", null)
-                        .WithMany()
-                        .HasForeignKey("InstrumentGrantsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("ClassFeatureLanguageGrants", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.ClassEntities.ClassFeature", null)
-                        .WithMany()
-                        .HasForeignKey("ClassFeatureId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PocketGrail.Domain.Entities.Language", null)
-                        .WithMany()
-                        .HasForeignKey("LanguageGrantsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("ClassFeatureWeaponGrants", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.ClassEntities.ClassFeature", null)
-                        .WithMany()
-                        .HasForeignKey("ClassFeatureId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PocketGrail.Domain.Entities.Proficiencies.WeaponProficiency", null)
-                        .WithMany()
-                        .HasForeignKey("WeaponGrantsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("PocketGrail.Domain.Entities.Campaign", b =>
                 {
                     b.HasOne("PocketGrail.Domain.Entities.User", "DmOwner")
@@ -1484,8 +1184,7 @@ namespace PocketGrail.Infrastructure.Migrations
 
                     b.HasOne("PocketGrail.Domain.Entities.ClassEntities.Subclass", "CharacterSubclass")
                         .WithMany()
-                        .HasForeignKey("CharacterSubclassId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("CharacterSubclassId");
 
                     b.HasOne("PocketGrail.Domain.Entities.ClassEntities.Class", "Class")
                         .WithMany("Characters")
@@ -1601,28 +1300,6 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.Navigation("Class");
                 });
 
-            modelBuilder.Entity("PocketGrail.Domain.Entities.ClassEntities.ClassSpellSlotTemplate", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.ClassEntities.Class", "Class")
-                        .WithMany("SpellSlotTemplates")
-                        .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Class");
-                });
-
-            modelBuilder.Entity("PocketGrail.Domain.Entities.ClassEntities.MulticlassPrerequisite", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.ClassEntities.Class", "Class")
-                        .WithMany("MulticlassPrerequisites")
-                        .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Class");
-                });
-
             modelBuilder.Entity("PocketGrail.Domain.Entities.ClassEntities.Subclass", b =>
                 {
                     b.HasOne("PocketGrail.Domain.Entities.ClassEntities.Class", "SourceClass")
@@ -1667,86 +1344,13 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.Navigation("Character");
                 });
 
-            modelBuilder.Entity("RaceArmorGrants", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.Proficiencies.ArmorProficiency", null)
-                        .WithMany()
-                        .HasForeignKey("ArmorGrantsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PocketGrail.Domain.Entities.Race", null)
-                        .WithMany()
-                        .HasForeignKey("RaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RaceInstrumentGrants", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.Instrument", null)
-                        .WithMany()
-                        .HasForeignKey("InstrumentGrantsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PocketGrail.Domain.Entities.Race", null)
-                        .WithMany()
-                        .HasForeignKey("RaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RaceLanguageGrants", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.Language", null)
-                        .WithMany()
-                        .HasForeignKey("LanguageGrantsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PocketGrail.Domain.Entities.Race", null)
-                        .WithMany()
-                        .HasForeignKey("RaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RaceWeaponGrants", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.Race", null)
-                        .WithMany()
-                        .HasForeignKey("RaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PocketGrail.Domain.Entities.Proficiencies.WeaponProficiency", null)
-                        .WithMany()
-                        .HasForeignKey("WeaponGrantsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("PocketGrail.Domain.Entities.ClassEntities.ClassFeature", b =>
                 {
-                    b.HasOne("PocketGrail.Domain.Entities.ClassEntities.Class", "SourceClass")
+                    b.HasOne("PocketGrail.Domain.Entities.ClassEntities.Class", null)
                         .WithMany("ClassFeatures")
                         .HasForeignKey("ClassId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("SourceClass");
-                });
-
-            modelBuilder.Entity("PocketGrail.Domain.Entities.RaceFeature", b =>
-                {
-                    b.HasOne("PocketGrail.Domain.Entities.Race", "SourceRace")
-                        .WithMany("Features")
-                        .HasForeignKey("RaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("SourceRace");
                 });
 
             modelBuilder.Entity("PocketGrail.Domain.Entities.Campaign", b =>
@@ -1787,18 +1391,9 @@ namespace PocketGrail.Infrastructure.Migrations
 
                     b.Navigation("ClassFeatures");
 
-                    b.Navigation("MulticlassPrerequisites");
-
                     b.Navigation("SavingThrows");
 
-                    b.Navigation("SpellSlotTemplates");
-
                     b.Navigation("Subclasses");
-                });
-
-            modelBuilder.Entity("PocketGrail.Domain.Entities.Race", b =>
-                {
-                    b.Navigation("Features");
                 });
 
             modelBuilder.Entity("PocketGrail.Domain.Entities.Spell", b =>

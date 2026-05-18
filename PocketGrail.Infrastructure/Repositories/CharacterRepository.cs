@@ -32,7 +32,7 @@ internal sealed class CharacterRepository : ICharacterRepository
             .Include(c => c.Items).ThenInclude(i => i.CharacterItems.Where(ci => ci.CharacterId == id))
             .Include(c => c.Spells).ThenInclude(s => s.CharacterSpells.Where(cs => cs.CharacterId == id))
             .Include(c => c.Feats)
-            .Include(c => c.Features).ThenInclude(f => f.CharacterFeatures.Where(cf => cf.CharacterId == id))
+            .Include(c => c.Features)
             .Include(c => c.Proficiencies).ThenInclude(cp => cp.Skills)
             .Include(c => c.Proficiencies).ThenInclude(cp => cp.AdditionalSavingThrows)
             .Include(c => c.Proficiencies).ThenInclude(cp => cp.Languages)
@@ -57,6 +57,9 @@ internal sealed class CharacterRepository : ICharacterRepository
             .Include(c => c.Classes).ThenInclude(cc => cc.Class)
             .Where(c => c.CampaignId == campaignId)
             .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Item>> GetItemsByIdsAsync(IEnumerable<int> ids, CancellationToken ct = default) =>
+        await _context.Items.Where(i => ids.Contains(i.Id)).ToListAsync(ct);
 
     public async Task AddAsync(Character character, CancellationToken ct = default) =>
         await _context.Characters.AddAsync(character, ct);

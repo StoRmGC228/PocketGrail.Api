@@ -2,12 +2,13 @@ using Microsoft.OpenApi.Models;
 using PocketGrail.Api.Configuration;
 using PocketGrail.Api.Hubs;
 using PocketGrail.Api.Middleware;
+using PocketGrail.Application.Interfaces;
 
 namespace PocketGrail.Api
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +65,12 @@ namespace PocketGrail.Api
             });
 
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var seeder = scope.ServiceProvider.GetRequiredService<IDatabaseSeeder>();
+                await seeder.SeedAsync();
+            }
 
             app.UseMiddleware<ErrorHandlerMiddleware>();
 

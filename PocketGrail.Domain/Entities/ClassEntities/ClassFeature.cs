@@ -1,18 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace PocketGrail.Domain.Entities.ClassEntities;
 
-namespace PocketGrail.Domain.Entities.ClassEntities
+using PocketGrail.Domain.Entities.Proficiencies;
+
+public class ClassFeature : Feature
 {
-    public class ClassFeature : Feature
-    {
-        public int GainingLevel { get; set; }
-        public string Name { get; set; }
-        public string DescriptionText { get; set; }
+    public int GainingLevel { get; set; }
 
-        public int ClassId { get; set; }
-        public Class SourceClass { get; set; }
-    }
+    public int ClassId { get; set; }
+    public Class SourceClass { get; set; } = null!;
+
+    public List<WeaponProficiency>  WeaponGrants   { get; set; } = [];
+    public List<ArmorProficiency>   ArmorGrants    { get; set; } = [];
+    public List<Language>           LanguageGrants { get; set; } = [];
+    public List<Instrument>         InstrumentGrants { get; set; } = [];
 }

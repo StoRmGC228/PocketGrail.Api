@@ -3,6 +3,7 @@ namespace PocketGrail.Application.Mappers;
 using PocketGrail.Application.DTOs;
 using PocketGrail.Domain.Entities;
 using PocketGrail.Domain.Entities.Characters;
+using PocketGrail.Domain.Entities.ClassEntities;
 
 public static class CharacterMapper
 {
@@ -80,11 +81,7 @@ public static class CharacterMapper
             return ToSpellDto(s, j?.Prepared ?? true);
         }).ToList(),
         Feats = c.Feats.Select(f => new FeatDto { Id = f.Id, Name = f.Name, Requirement = f.Requirement, Description = f.Description }).ToList(),
-        Features = c.Features.Select(f =>
-        {
-            var j = f.CharacterFeatures.FirstOrDefault(cf => cf.CharacterId == c.Id);
-            return ToFeatureDto(f, j?.IsAutoAdded ?? false);
-        }).ToList(),
+        Features = c.Features.Select(ToFeatureDto).ToList(),
         SpellSlots = c.SpellSlots.Select(s => new SpellSlotDto { Id = s.Id, SlotLevel = s.SlotLevel, TotalSlots = s.TotalSlots, RemainingSlots = s.RemainingSlots }).ToList(),
         SavingThrows = c.Classes
             .SelectMany(cc => cc.Class.SavingThrows.Select(st => st.Ability))
@@ -133,9 +130,42 @@ public static class CharacterMapper
         Components = s.Components, Prepared = prepared
     };
 
-    public static FeatureDto ToFeatureDto(Feature f, bool autoAdded) => new()
+    public static FeatureDto ToFeatureDto(Feature f) => new()
     {
-        Id = f.Id, Name = f.Name, Description = f.Description,
-        FeatureLevel = f.FeatureLevel, IsAutoAdded = autoAdded
+        Id = f.Id, Name = f.Name, Description = f.Description
+    };
+
+    public static SubclassDto ToSubclassDto(Subclass s) => new()
+    {
+        Id = s.Id, Name = s.Name, ShortDescription = s.ShortDescription, ClassId = s.ClassId
+    };
+
+    public static ClassDto ToClassInfoDto(Class c) => new()
+    {
+        Id              = c.Id,
+        Name            = c.Name,
+        HitDice         = c.HitDice,
+        SpellAbility    = c.SpellAbility,
+        SkillChoiceCount = c.SkillChoiceCount,
+        Subclasses      = c.Subclasses?.Select(ToSubclassDto).ToList() ?? []
+    };
+
+    public static RaceDto ToRaceDto(Race r) => new()
+    {
+        Id                  = r.Id,
+        Name                = r.Name,
+        BaseSpeed           = r.BaseSpeed,
+        StrBonus            = r.StrBonus,
+        DexBonus            = r.DexBonus,
+        ConBonus            = r.ConBonus,
+        IntBonus            = r.IntBonus,
+        WisBonus            = r.WisBonus,
+        ChaBonus            = r.ChaBonus,
+        FlexibleBonusPoints = r.FlexibleBonusPoints,
+        WeaponGrants        = r.WeaponGrants.Select(w => w.Name).ToList(),
+        ArmorGrants         = r.ArmorGrants.Select(a => a.Name).ToList(),
+        LanguageGrants      = r.LanguageGrants.Select(l => l.Name).ToList(),
+        InstrumentGrants    = r.InstrumentGrants.Select(i => i.Name).ToList(),
+        Features            = r.Features.Select(f => new RaceFeatureDto { Id = f.Id, Name = f.Name, Description = f.Description }).ToList()
     };
 }

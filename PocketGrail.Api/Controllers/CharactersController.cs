@@ -35,8 +35,9 @@ public sealed class CharactersController : ControllerBase
         return character is null ? NotFound() : Ok(character);
     }
 
-    // POST /api/characters  — multipart/form-data
+    // POST /api/characters
     [HttpPost]
+    [Consumes("multipart/form-data")]
     public async Task<IActionResult> CreateCharacter(
         [FromForm] CreateCharacterRequest request,
         CancellationToken ct)
@@ -249,10 +250,19 @@ public sealed class CharactersController : ControllerBase
 
     // POST /api/characters/{id}/classes/{classId}/level-up
     [HttpPost("{id:int}/classes/{classId:int}/level-up")]
-    public async Task<IActionResult> LevelUp(int id, int classId, CancellationToken ct)
+    public async Task<IActionResult> LevelUp(int id, int classId, [FromBody] LevelUpRequest? request, CancellationToken ct)
     {
         var userId = ClaimsHelper.GetUserId(User);
-        var result = await _characterService.LevelUpAsync(id, classId, userId, ct);
+        var result = await _characterService.LevelUpAsync(id, classId, request, userId, ct);
+        return Ok(result);
+    }
+
+    // PATCH /api/characters/{id}/classes/{classId}/subclass
+    [HttpPatch("{id:int}/classes/{classId:int}/subclass")]
+    public async Task<IActionResult> SetSubclass(int id, int classId, [FromBody] SetSubclassRequest request, CancellationToken ct)
+    {
+        var userId = ClaimsHelper.GetUserId(User);
+        var result = await _characterService.SetSubclassAsync(id, classId, request, userId, ct);
         return Ok(result);
     }
 

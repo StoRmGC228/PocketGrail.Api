@@ -74,10 +74,6 @@ internal sealed class CharacterConfiguration : IEntityTypeConfiguration<Characte
                 j => j.HasKey(cf => new { cf.CharacterId, cf.FeatId }));
 
         builder.HasMany(c => c.Features)
-            .WithMany(f => f.Characters)
-            .UsingEntity<CharacterFeature>(
-                j => j.HasOne(cf => cf.Feature).WithMany(f => f.CharacterFeatures).HasForeignKey(cf => cf.FeatureId),
-                j => j.HasOne(cf => cf.Character).WithMany().HasForeignKey(cf => cf.CharacterId),
-                j => j.HasKey(cf => new { cf.CharacterId, cf.FeatureId }));
+            .WithMany();
     }
 }

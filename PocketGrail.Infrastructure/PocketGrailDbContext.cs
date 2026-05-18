@@ -5,6 +5,7 @@ using PocketGrail.Domain.Entities;
 using PocketGrail.Domain.Entities.Characters;
 using PocketGrail.Domain.Entities.ClassEntities;
 using PocketGrail.Domain.Entities.Proficiencies;
+using PocketGrail.Domain.Entities.Enums;
 
 internal sealed class PocketGrailDbContext : DbContext
 {
@@ -25,11 +26,22 @@ internal sealed class PocketGrailDbContext : DbContext
     public DbSet<CharacterItem> CharacterItems => Set<CharacterItem>();
     public DbSet<CharacterSpell> CharacterSpells => Set<CharacterSpell>();
     public DbSet<CharacterFeat> CharacterFeats => Set<CharacterFeat>();
-    public DbSet<CharacterFeature> CharacterFeatures => Set<CharacterFeature>();
+
+    public DbSet<Class> Classes => Set<Class>();
+    public DbSet<Subclass> Subclasses => Set<Subclass>();
+    public DbSet<ClassFeature> ClassFeatures => Set<ClassFeature>();
+    public DbSet<MulticlassPrerequisite> MulticlassPrerequisites => Set<MulticlassPrerequisite>();
+    public DbSet<ClassSpellSlotTemplate> ClassSpellSlotTemplates => Set<ClassSpellSlotTemplate>();
+    public DbSet<Race> Races => Set<Race>();
+    public DbSet<RaceFeature> RaceFeatures => Set<RaceFeature>();
+
     public DbSet<CharacterClass> CharacterClasses => Set<CharacterClass>();
     public DbSet<CharacterProficiencies> CharacterProficiencies => Set<CharacterProficiencies>();
     public DbSet<SkillProficiency> SkillProficiencies => Set<SkillProficiency>();
-    public DbSet<AdditionalSavingThrowProficiency> AdditionalSavingThrowProficiencies => Set<AdditionalSavingThrowProficiency>();
+
+    public DbSet<AdditionalSavingThrowProficiency> AdditionalSavingThrowProficiencies =>
+        Set<AdditionalSavingThrowProficiency>();
+
     public DbSet<ClassSavingThrowProficiency> ClassSavingThrowProficiencies => Set<ClassSavingThrowProficiency>();
     public DbSet<Language> Languages => Set<Language>();
     public DbSet<Instrument> Instruments => Set<Instrument>();

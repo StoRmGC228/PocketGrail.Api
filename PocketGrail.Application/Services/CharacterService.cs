@@ -1,21 +1,31 @@
 namespace PocketGrail.Application.Services;
 
-using PocketGrail.Application.Data;
 using PocketGrail.Application.DTOs;
 using PocketGrail.Application.Interfaces;
 using PocketGrail.Application.Mappers;
 using PocketGrail.Domain.Entities;
 using PocketGrail.Domain.Entities.Characters;
+using PocketGrail.Domain.Entities.ClassEntities;
+using PocketGrail.Domain.Entities.Enums;
+using PocketGrail.Domain.Entities.Proficiencies;
 
 public sealed class CharacterService : ICharacterService
 {
     private readonly ICharacterRepository _repository;
     private readonly ICloudinaryService _cloudinaryService;
+    private readonly IClassRepository _classRepository;
+    private readonly IRaceRepository _raceRepository;
 
-    public CharacterService(ICharacterRepository repository, ICloudinaryService cloudinaryService)
+    public CharacterService(
+        ICharacterRepository repository,
+        ICloudinaryService cloudinaryService,
+        IClassRepository classRepository,
+        IRaceRepository raceRepository)
     {
         _repository = repository;
         _cloudinaryService = cloudinaryService;
+        _classRepository = classRepository;
+        _raceRepository = raceRepository;
     }
 
     // ── Basic queries ──────────────────────────────────────────────────────────
@@ -45,37 +55,95 @@ public sealed class CharacterService : ICharacterService
     public async Task<CharacterDto> CreateCharacterAsync(
         CreateCharacterRequest request, int userId, CancellationToken ct = default)
     {
+        var cls = await _classRepository.GetByNameWithDetailsAsync(request.ClassName, ct)
+            ?? throw new KeyNotFoundException($"Class '{request.ClassName}' not found.");
+        var race = await _raceRepository.GetByNameWithDetailsAsync(request.Race, ct)
+            ?? throw new KeyNotFoundException($"Race '{request.Race}' not found.");
+
+        if (race.FlexibleBonusPoints > 0)
+        {
+            var total = request.FlexStrBonus + request.FlexDexBonus + request.FlexConBonus
+                      + request.FlexIntBonus + request.FlexWisBonus + request.FlexChaBonus;
+            if (total != race.FlexibleBonusPoints)
+                throw new InvalidOperationException(
+                    $"Must distribute exactly {race.FlexibleBonusPoints} flexible bonus points. Got {total}.");
+        }
+
+        if (cls.SkillChoiceCount > 0 && request.SkillChoices.Count != cls.SkillChoiceCount)
+            throw new InvalidOperationException(
+                $"Must choose exactly {cls.SkillChoiceCount} skills for {cls.Name}. Got {request.SkillChoices.Count}.");
+
         string? imageUrl = null;
         if (request.Image is not null)
             imageUrl = await _cloudinaryService.UploadImageAsync(request.Image, ct: ct);
 
         var now = DateTime.UtcNow;
-        var character = new Character
+
+        var stats = new CharacterStats
         {
-            Name = request.Name,
-            Race = request.Race,
-            Level = 1,
-            CurrentHp = 0,
-            MaxHp = 0,
-            ImageUrl = imageUrl,
-            OwnerId = userId,
-            CampaignId = request.CampaignId,
+            Strength     = request.StrScore + race.StrBonus + request.FlexStrBonus,
+            Dexterity    = request.DexScore + race.DexBonus + request.FlexDexBonus,
+            Constitution = request.ConScore + race.ConBonus + request.FlexConBonus,
+            Intelligence = request.IntScore + race.IntBonus + request.FlexIntBonus,
+            Wisdom       = request.WisScore + race.WisBonus + request.FlexWisBonus,
+            Charisma     = request.ChaScore + race.ChaBonus + request.FlexChaBonus,
             CreatedAt = now,
             UpdatedAt = now
         };
 
-        var wallet = new CharacterWallet
+        var profs = new CharacterProficiencies { CreatedAt = now, UpdatedAt = now };
+        ApplyRaceProficiencies(profs, race, now);
+        ApplyClassLevel1Proficiencies(profs, cls, now);
+        ApplyPlayerChoices(profs, request, now);
+
+        var character = new Character
         {
-            CharacterId = 0,
-            CreatedAt = now,
-            UpdatedAt = now
+            Name       = request.Name,
+            Race       = request.Race,
+            Level      = 1,
+            CurrentHp  = 0,
+            MaxHp      = 0,
+            Speed      = race.BaseSpeed,
+            OwnerId    = userId,
+            CampaignId = request.CampaignId,
+            CreatedAt  = now,
+            UpdatedAt  = now,
+            Wallet        = new CharacterWallet { CreatedAt = now, UpdatedAt = now },
+            CharacterStats = stats,
+            Proficiencies  = profs
         };
-        character.Wallet = wallet;
+
+        character.Classes.Add(new CharacterClass
+        {
+            ClassId           = cls.Id,
+            ClassLevel        = 1,
+            TotalHitDiceCount = 1,
+            CreatedAt         = now,
+            UpdatedAt         = now
+        });
+
+        foreach (var rf in race.Features)
+            character.Features.Add(new Feature { Name = rf.Name, Description = rf.Description, CreatedAt = now, UpdatedAt = now });
+
+        foreach (var cf in cls.ClassFeatures.Where(cf => cf.GainingLevel == 1 && cf.Name != "Starting Proficiencies"))
+            character.Features.Add(new Feature { Name = cf.Name, Description = cf.Description, CreatedAt = now, UpdatedAt = now });
+
+        foreach (var t in cls.SpellSlotTemplates.Where(t => t.ClassLevel == 1 && t.TotalSlots > 0))
+            character.SpellSlots.Add(new SpellSlot
+                { SlotLevel = t.SpellSlotLevel, TotalSlots = t.TotalSlots, RemainingSlots = t.TotalSlots, CreatedAt = now, UpdatedAt = now });
 
         await _repository.AddAsync(character, ct);
         await _repository.SaveChangesAsync(ct);
 
-        await AddClassToCharacterInternalAsync(character.Id, request.ClassName, isFirstClass: true, ct);
+        if (request.StartingItemIds.Count > 0)
+        {
+            var withItems = await _repository.GetDetailByIdAsync(character.Id, ct)
+                            ?? throw new InvalidOperationException("Character not found after creation.");
+            var items = await _repository.GetItemsByIdsAsync(request.StartingItemIds, ct);
+            foreach (var item in items)
+                withItems.Items.Add(item);
+            await _repository.SaveChangesAsync(ct);
+        }
 
         var created = await _repository.GetByIdAsync(character.Id, ct)
                       ?? throw new InvalidOperationException("Failed to retrieve created character.");
@@ -127,9 +195,8 @@ public sealed class CharacterService : ICharacterService
         var c = await GetOwnedDetailAsync(id, userId, ct);
         var now = DateTime.UtcNow;
         if (c.CharacterStats is null)
-        {
             c.CharacterStats = new CharacterStats { CharacterId = c.Id, CreatedAt = now, UpdatedAt = now };
-        }
+
         if (request.StrScore.HasValue) c.CharacterStats.Strength = request.StrScore.Value;
         if (request.DexScore.HasValue) c.CharacterStats.Dexterity = request.DexScore.Value;
         if (request.ConScore.HasValue) c.CharacterStats.Constitution = request.ConScore.Value;
@@ -203,23 +270,13 @@ public sealed class CharacterService : ICharacterService
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var item = new Item
         {
-            Name = request.Name,
-            Description = request.Description,
-            Rarity = request.Rarity,
-            Category = request.Category,
-            Weight = request.Weight,
-            Cost = request.Cost,
-            IsWeapon = request.IsWeapon,
-            IsMagical = request.IsMagical,
-            AtkMod = request.AtkMod,
-            Damage = request.Damage,
-            DamageType = request.DamageType,
-            WeaponProperties = request.WeaponProperties,
-            ChargesInfo = request.ChargesInfo,
-            RechargeType = request.RechargeType,
-            Tags = request.Tags,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
+            Name = request.Name, Description = request.Description, Rarity = request.Rarity,
+            Category = request.Category, Weight = request.Weight, Cost = request.Cost,
+            IsWeapon = request.IsWeapon, IsMagical = request.IsMagical, AtkMod = request.AtkMod,
+            Damage = request.Damage, DamageType = request.DamageType,
+            WeaponProperties = request.WeaponProperties, ChargesInfo = request.ChargesInfo,
+            RechargeType = request.RechargeType, Tags = request.Tags,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
         };
         c.Items.Add(item);
         await _repository.SaveChangesAsync(ct);
@@ -268,16 +325,10 @@ public sealed class CharacterService : ICharacterService
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var spell = new Spell
         {
-            Name = request.Name,
-            Level = request.Level,
-            School = request.School,
-            Range = request.Range,
-            CastingTime = request.CastingTime,
-            Concentration = request.Concentration,
-            IsRitual = request.IsRitual,
-            Components = request.Components,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
+            Name = request.Name, Level = request.Level, School = request.School, Range = request.Range,
+            CastingTime = request.CastingTime, Concentration = request.Concentration,
+            IsRitual = request.IsRitual, Components = request.Components,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
         };
         c.Spells.Add(spell);
         await _repository.SaveChangesAsync(ct);
@@ -323,9 +374,7 @@ public sealed class CharacterService : ICharacterService
         slot.RemainingSlots = Math.Clamp(request.RemainingSlots, 0, slot.TotalSlots);
         await _repository.SaveChangesAsync(ct);
         return new SpellSlotDto
-        {
-            Id = slot.Id, SlotLevel = slot.SlotLevel, TotalSlots = slot.TotalSlots, RemainingSlots = slot.RemainingSlots
-        };
+            { Id = slot.Id, SlotLevel = slot.SlotLevel, TotalSlots = slot.TotalSlots, RemainingSlots = slot.RemainingSlots };
     }
 
     // ── Feats ──────────────────────────────────────────────────────────────────
@@ -336,16 +385,12 @@ public sealed class CharacterService : ICharacterService
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var feat = new Feat
         {
-            Name = request.Name,
-            Requirement = request.Requirement,
-            Description = request.Description,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
+            Name = request.Name, Requirement = request.Requirement, Description = request.Description,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
         };
         c.Feats.Add(feat);
         await _repository.SaveChangesAsync(ct);
-        return new FeatDto
-            { Id = feat.Id, Name = feat.Name, Requirement = feat.Requirement, Description = feat.Description };
+        return new FeatDto { Id = feat.Id, Name = feat.Name, Requirement = feat.Requirement, Description = feat.Description };
     }
 
     public async Task DeleteFeatAsync(int characterId, int featId, int userId, CancellationToken ct = default)
@@ -367,16 +412,12 @@ public sealed class CharacterService : ICharacterService
         {
             Name = request.Name,
             Description = request.Description,
-            FeatureType = request.FeatureType,
-            FeatureLevel = request.FeatureLevel,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };
         c.Features.Add(feature);
         await _repository.SaveChangesAsync(ct);
-
-        var junction = feature.CharacterFeatures.FirstOrDefault(cf => cf.CharacterId == characterId);
-        return CharacterMapper.ToFeatureDto(feature, junction?.IsAutoAdded ?? false);
+        return CharacterMapper.ToFeatureDto(feature);
     }
 
     public async Task DeleteFeatureAsync(int characterId, int featureId, int userId, CancellationToken ct = default)
@@ -397,29 +438,66 @@ public sealed class CharacterService : ICharacterService
         var now = DateTime.UtcNow;
 
         if (c.Proficiencies is null)
+            c.Proficiencies = new CharacterProficiencies { CharacterId = c.Id, CreatedAt = now, UpdatedAt = now };
+
+        int newId;
+
+        switch (request.ProficiencyType.ToLowerInvariant())
         {
-            c.Proficiencies = new CharacterProficiencies
-                { CharacterId = c.Id, CreatedAt = now, UpdatedAt = now };
+            case "skill":
+                if (!Enum.TryParse<Skill>(request.Name, true, out var skill))
+                    throw new InvalidOperationException($"Unknown skill: {request.Name}.");
+                var sp = new SkillProficiency
+                    { Skill = skill, HasExpertise = request.HasExpertise, CharacterProficienciesId = c.Proficiencies.Id, CreatedAt = now, UpdatedAt = now };
+                c.Proficiencies.Skills.Add(sp);
+                await _repository.SaveChangesAsync(ct);
+                newId = sp.Id;
+                break;
+
+            case "weapon":
+                var wp = new WeaponProficiency { Name = request.Name, CreatedAt = now, UpdatedAt = now };
+                c.Proficiencies.Weapons.Add(wp);
+                await _repository.SaveChangesAsync(ct);
+                newId = wp.Id;
+                break;
+
+            case "armor":
+                var ap = new ArmorProficiency { Name = request.Name, CreatedAt = now, UpdatedAt = now };
+                c.Proficiencies.Armors.Add(ap);
+                await _repository.SaveChangesAsync(ct);
+                newId = ap.Id;
+                break;
+
+            case "language":
+                var lg = new Language { Name = request.Name, CreatedAt = now, UpdatedAt = now };
+                c.Proficiencies.Languages.Add(lg);
+                await _repository.SaveChangesAsync(ct);
+                newId = lg.Id;
+                break;
+
+            case "instrument":
+                var ig = new Instrument { Name = request.Name, CreatedAt = now, UpdatedAt = now };
+                c.Proficiencies.Instruments.Add(ig);
+                await _repository.SaveChangesAsync(ct);
+                newId = ig.Id;
+                break;
+
+            case "savingthrow":
+                if (!Enum.TryParse<Ability>(request.Name, true, out var ability))
+                    throw new InvalidOperationException($"Unknown ability: {request.Name}.");
+                var st = new AdditionalSavingThrowProficiency
+                    { Ability = ability, CharacterProficienciesId = c.Proficiencies.Id, CreatedAt = now, UpdatedAt = now };
+                c.Proficiencies.AdditionalSavingThrows.Add(st);
+                await _repository.SaveChangesAsync(ct);
+                newId = st.Id;
+                break;
+
+            default:
+                throw new InvalidOperationException($"Unknown proficiency type: '{request.ProficiencyType}'. Valid: skill, weapon, armor, language, instrument, savingthrow.");
         }
 
-        // Route to the appropriate collection based on type
-        if (request.ProficiencyType == "skill" &&
-            Enum.TryParse<PocketGrail.Domain.Entities.Enums.Skill>(request.Name, true, out var skill))
-        {
-            c.Proficiencies.Skills.Add(new PocketGrail.Domain.Entities.Proficiencies.SkillProficiency
-            {
-                Skill = skill, HasExpertise = request.HasExpertise,
-                CharacterProficienciesId = c.Proficiencies.Id,
-                CreatedAt = now, UpdatedAt = now
-            });
-        }
-
-        await _repository.SaveChangesAsync(ct);
         return new ProficiencyDto
-        {
-            Id = 0, Name = request.Name, ProficiencyType = request.ProficiencyType,
-            HasExpertise = request.HasExpertise, AbilityKey = request.AbilityKey
-        };
+            { Id = newId, Name = request.Name, ProficiencyType = request.ProficiencyType, HasExpertise = request.HasExpertise, AbilityKey = request.AbilityKey };
     }
 
     public async Task DeleteProficiencyAsync(int characterId, int proficiencyId, int userId,
@@ -429,11 +507,22 @@ public sealed class CharacterService : ICharacterService
         if (c.Proficiencies is null) return;
 
         var skill = c.Proficiencies.Skills.FirstOrDefault(s => s.Id == proficiencyId);
-        if (skill is not null)
-        {
-            c.Proficiencies.Skills.Remove(skill);
-            await _repository.SaveChangesAsync(ct);
-        }
+        if (skill is not null) { c.Proficiencies.Skills.Remove(skill); await _repository.SaveChangesAsync(ct); return; }
+
+        var weapon = c.Proficiencies.Weapons.FirstOrDefault(w => w.Id == proficiencyId);
+        if (weapon is not null) { c.Proficiencies.Weapons.Remove(weapon); await _repository.SaveChangesAsync(ct); return; }
+
+        var armor = c.Proficiencies.Armors.FirstOrDefault(a => a.Id == proficiencyId);
+        if (armor is not null) { c.Proficiencies.Armors.Remove(armor); await _repository.SaveChangesAsync(ct); return; }
+
+        var language = c.Proficiencies.Languages.FirstOrDefault(l => l.Id == proficiencyId);
+        if (language is not null) { c.Proficiencies.Languages.Remove(language); await _repository.SaveChangesAsync(ct); return; }
+
+        var instrument = c.Proficiencies.Instruments.FirstOrDefault(i => i.Id == proficiencyId);
+        if (instrument is not null) { c.Proficiencies.Instruments.Remove(instrument); await _repository.SaveChangesAsync(ct); return; }
+
+        var savingThrow = c.Proficiencies.AdditionalSavingThrows.FirstOrDefault(s => s.Id == proficiencyId);
+        if (savingThrow is not null) { c.Proficiencies.AdditionalSavingThrows.Remove(savingThrow); await _repository.SaveChangesAsync(ct); return; }
     }
 
     // ── Allies ─────────────────────────────────────────────────────────────────
@@ -451,20 +540,20 @@ public sealed class CharacterService : ICharacterService
             .Where(c => c.Id != characterId)
             .Select(c => new AllyDto
             {
-                CharacterId = c.Id,
+                CharacterId   = c.Id,
                 CharacterName = c.Name,
-                Race = c.Race,
-                Classes = c.Classes.Select(CharacterMapper.ToClassDto).ToList(),
-                ClassDisplay = CharacterMapper.FormatClassDisplay(c.Classes),
-                Level = c.Level,
-                CurrentHp = c.CurrentHp,
-                MaxHp = c.MaxHp,
-                ImageUrl = c.ImageUrl,
-                ImageCropX = c.ImageCropX,
-                ImageCropY = c.ImageCropY,
-                ImageCropWidth = c.ImageCropWidth,
+                Race          = c.Race,
+                Classes       = c.Classes.Select(CharacterMapper.ToClassDto).ToList(),
+                ClassDisplay  = CharacterMapper.FormatClassDisplay(c.Classes),
+                Level         = c.Level,
+                CurrentHp     = c.CurrentHp,
+                MaxHp         = c.MaxHp,
+                ImageUrl      = c.ImageUrl,
+                ImageCropX    = c.ImageCropX,
+                ImageCropY    = c.ImageCropY,
+                ImageCropWidth  = c.ImageCropWidth,
                 ImageCropHeight = c.ImageCropHeight,
-                UserId = c.OwnerId,
+                UserId   = c.OwnerId,
                 Username = c.Owner?.Username ?? string.Empty
             })
             .ToList();
@@ -480,31 +569,152 @@ public sealed class CharacterService : ICharacterService
         if (character.Classes.Any(cc => cc.Class?.Name.Equals(request.ClassName, StringComparison.OrdinalIgnoreCase) == true))
             throw new InvalidOperationException($"Character already has a level in {request.ClassName}.");
 
-        await AddClassToCharacterInternalAsync(characterId, request.ClassName, isFirstClass: false, ct);
+        var cls = await _classRepository.GetByNameWithDetailsAsync(request.ClassName, ct)
+            ?? throw new KeyNotFoundException($"Class '{request.ClassName}' not found.");
+
+        if (character.Classes.Count > 0)
+        {
+            foreach (var prereq in cls.MulticlassPrerequisites)
+            {
+                var score = prereq.RequiredAbility switch
+                {
+                    Ability.Strength     => character.CharacterStats?.Strength ?? 0,
+                    Ability.Dexterity    => character.CharacterStats?.Dexterity ?? 0,
+                    Ability.Constitution => character.CharacterStats?.Constitution ?? 0,
+                    Ability.Intelligence => character.CharacterStats?.Intelligence ?? 0,
+                    Ability.Wisdom       => character.CharacterStats?.Wisdom ?? 0,
+                    Ability.Charisma     => character.CharacterStats?.Charisma ?? 0,
+                    _                    => 0
+                };
+                if (score < prereq.MinimumScore)
+                    throw new InvalidOperationException(
+                        $"Requires {prereq.RequiredAbility} {prereq.MinimumScore}+ to multiclass into {cls.Name}. Current: {score}.");
+            }
+        }
+
+        var now = DateTime.UtcNow;
+
+        character.Classes.Add(new CharacterClass
+        {
+            ClassId           = cls.Id,
+            ClassLevel        = 1,
+            TotalHitDiceCount = 1,
+            CreatedAt         = now,
+            UpdatedAt         = now
+        });
+
+        character.Level += 1;
+        character.UpdatedAt = now;
+
+        foreach (var cf in cls.ClassFeatures.Where(cf => cf.GainingLevel == 1 && cf.Name != "Starting Proficiencies"))
+        {
+            if (!character.Features.Any(f => f.Name == cf.Name))
+                character.Features.Add(new Feature { Name = cf.Name, Description = cf.Description, CreatedAt = now, UpdatedAt = now });
+        }
+
+        foreach (var t in cls.SpellSlotTemplates.Where(t => t.ClassLevel == 1 && t.TotalSlots > 0))
+        {
+            if (!character.SpellSlots.Any(s => s.SlotLevel == t.SpellSlotLevel))
+                character.SpellSlots.Add(new SpellSlot
+                    { SlotLevel = t.SpellSlotLevel, TotalSlots = t.TotalSlots, RemainingSlots = t.TotalSlots, CreatedAt = now, UpdatedAt = now });
+        }
+
+        await _repository.SaveChangesAsync(ct);
 
         var reloaded = await _repository.GetDetailByIdAsync(characterId, ct)!;
-        var newClass = reloaded!.Classes.First(cc =>
-            cc.Class?.Name.Equals(request.ClassName, StringComparison.OrdinalIgnoreCase) == true);
-        return CharacterMapper.ToClassDto(newClass);
+        var newEntry = reloaded!.Classes.First(cc => cc.ClassId == cls.Id);
+        return CharacterMapper.ToClassDto(newEntry);
     }
 
-    public async Task<CharacterClassDto> LevelUpAsync(
-        int characterId, int classId, int userId, CancellationToken ct = default)
+    public async Task<LevelUpResponse> LevelUpAsync(
+        int characterId, int classId, LevelUpRequest? request, int userId, CancellationToken ct = default)
     {
         var character = await GetOwnedDetailAsync(characterId, userId, ct);
         var classEntry = character.Classes.FirstOrDefault(cc => cc.Id == classId)
                          ?? throw new KeyNotFoundException("Class entry not found on this character.");
 
-        classEntry.ClassLevel += 1;
+        var newLevel = classEntry.ClassLevel + 1;
+
+        var cls = await _classRepository.GetByNameWithDetailsAsync(classEntry.Class?.Name ?? string.Empty, ct)
+            ?? throw new KeyNotFoundException("Class data not found in database.");
+
+        var featuresAtLevel = cls.ClassFeatures
+            .Where(cf => cf.GainingLevel == newLevel && cf.Name != "Starting Proficiencies")
+            .ToList();
+
+        var isAsiLevel = featuresAtLevel.Any(f => f.Name == "Ability Score Improvement");
+
+        if (isAsiLevel && (request is null || (!HasScoreChoice(request) && request.NewFeat is null)))
+            return new LevelUpResponse
+            {
+                RequiresAbilityScoreChoice = true,
+                Message = "Choose: +2 to one ability, +1/+1 to two abilities, or gain a feat."
+            };
+
+        var now = DateTime.UtcNow;
+
+        if (isAsiLevel && request is not null)
+        {
+            if (request.NewFeat is not null)
+            {
+                character.Feats.Add(new Feat
+                {
+                    Name = request.NewFeat.Name, Requirement = request.NewFeat.Requirement,
+                    Description = request.NewFeat.Description, CreatedAt = now, UpdatedAt = now
+                });
+            }
+            else
+            {
+                var total = (request.StrIncrease ?? 0) + (request.DexIncrease ?? 0) + (request.ConIncrease ?? 0)
+                          + (request.IntIncrease ?? 0) + (request.WisIncrease ?? 0) + (request.ChaIncrease ?? 0);
+                if (total != 2)
+                    throw new InvalidOperationException("Ability score increases must total exactly 2.");
+
+                var stats = character.CharacterStats
+                            ?? throw new InvalidOperationException("Character has no stats record.");
+                if (request.StrIncrease.HasValue) stats.Strength     = Math.Min(20, stats.Strength     + request.StrIncrease.Value);
+                if (request.DexIncrease.HasValue) stats.Dexterity    = Math.Min(20, stats.Dexterity    + request.DexIncrease.Value);
+                if (request.ConIncrease.HasValue) stats.Constitution = Math.Min(20, stats.Constitution + request.ConIncrease.Value);
+                if (request.IntIncrease.HasValue) stats.Intelligence = Math.Min(20, stats.Intelligence + request.IntIncrease.Value);
+                if (request.WisIncrease.HasValue) stats.Wisdom       = Math.Min(20, stats.Wisdom       + request.WisIncrease.Value);
+                if (request.ChaIncrease.HasValue) stats.Charisma     = Math.Min(20, stats.Charisma     + request.ChaIncrease.Value);
+                stats.UpdatedAt = now;
+            }
+        }
+
+        classEntry.ClassLevel        = newLevel;
         classEntry.TotalHitDiceCount += 1;
-        character.Level += 1;
-        character.UpdatedAt = DateTime.UtcNow;
-        classEntry.UpdatedAt = DateTime.UtcNow;
+        classEntry.UpdatedAt         = now;
+        character.Level   += 1;
+        character.UpdatedAt = now;
+
+        foreach (var cf in featuresAtLevel)
+        {
+            if (!character.Features.Any(f => f.Name == cf.Name))
+                character.Features.Add(new Feature { Name = cf.Name, Description = cf.Description, CreatedAt = now, UpdatedAt = now });
+        }
+
+        foreach (var t in cls.SpellSlotTemplates.Where(t => t.ClassLevel == newLevel && t.TotalSlots > 0))
+        {
+            var existing = character.SpellSlots.FirstOrDefault(s => s.SlotLevel == t.SpellSlotLevel);
+            if (existing is null)
+            {
+                character.SpellSlots.Add(new SpellSlot
+                    { SlotLevel = t.SpellSlotLevel, TotalSlots = t.TotalSlots, RemainingSlots = t.TotalSlots, CreatedAt = now, UpdatedAt = now });
+            }
+            else if (t.TotalSlots > existing.TotalSlots)
+            {
+                var diff = t.TotalSlots - existing.TotalSlots;
+                existing.TotalSlots    = t.TotalSlots;
+                existing.RemainingSlots = Math.Min(existing.RemainingSlots + diff, existing.TotalSlots);
+                existing.UpdatedAt     = now;
+            }
+        }
 
         await _repository.SaveChangesAsync(ct);
-        await SeedClassFeaturesAtLevel(characterId, classEntry.Class?.Name ?? string.Empty, classEntry.ClassLevel, ct);
 
-        return CharacterMapper.ToClassDto(classEntry);
+        var reloaded = await _repository.GetDetailByIdAsync(characterId, ct)!;
+        return new LevelUpResponse { Character = CharacterMapper.ToDetailDto(reloaded!) };
     }
 
     public async Task<CharacterClassDto> UpdateCharacterClassAsync(
@@ -514,7 +724,6 @@ public sealed class CharacterService : ICharacterService
         var classEntry = character.Classes.FirstOrDefault(cc => cc.Id == classId)
                          ?? throw new KeyNotFoundException("Class entry not found on this character.");
 
-        // Subclass update requires a DB lookup — not implemented yet (needs IClassRepository)
         if (request.UsedHitDice.HasValue)
             character.UsedHitDice = Math.Clamp(request.UsedHitDice.Value, 0, classEntry.TotalHitDiceCount);
 
@@ -534,138 +743,93 @@ public sealed class CharacterService : ICharacterService
         var classEntry = character.Classes.FirstOrDefault(cc => cc.Id == classId)
                          ?? throw new KeyNotFoundException("Class entry not found on this character.");
 
-        var className = classEntry.Class?.Name ?? string.Empty;
-        var classLevel = classEntry.ClassLevel;
-
-        character.Classes.Remove(classEntry);
-        character.Level -= classLevel;
+        character.Level    -= classEntry.ClassLevel;
         character.UpdatedAt = DateTime.UtcNow;
-
-        // Remove auto-added class features from this class
-        var featuresToRemove = character.Features
-            .Where(f => string.Equals(f.SourceClass, className, StringComparison.OrdinalIgnoreCase)
-                        && f.CharacterFeatures.Any(cf => cf.CharacterId == characterId && cf.IsAutoAdded))
-            .ToList();
-        foreach (var f in featuresToRemove)
-            character.Features.Remove(f);
+        character.Classes.Remove(classEntry);
 
         await _repository.SaveChangesAsync(ct);
     }
 
-    // ── Seeding helpers ────────────────────────────────────────────────────────
+    // ── Subclass ───────────────────────────────────────────────────────────────
 
-    private async Task AddClassToCharacterInternalAsync(int characterId, string className, bool isFirstClass,
-        CancellationToken ct)
+    public async Task<IReadOnlyList<SubclassDto>> GetSubclassesForClassAsync(
+        string className, CancellationToken ct = default)
     {
-        var character = await _repository.GetDetailByIdAsync(characterId, ct)
-                        ?? throw new InvalidOperationException("Character not found.");
-
-        var now = DateTime.UtcNow;
-
-        // ClassId lookup requires IClassRepository — placeholder until it is implemented
-        var characterClass = new CharacterClass
-        {
-            CharacterId = characterId,
-            ClassLevel = 1,
-            TotalHitDiceCount = 1,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
-        character.Classes.Add(characterClass);
-
-        if (isFirstClass)
-        {
-            // Saving throws come from ClassSavingThrowProficiency via the Class entity — no manual seeding needed
-            await _repository.SaveChangesAsync(ct);
-            await SeedCharacterDefaults(characterId, character.Race, className, 1, ct);
-        }
-        else
-        {
-            // Multiclass: only seed level-1 class features (no saving throws)
-            await _repository.SaveChangesAsync(ct);
-            await SeedClassFeaturesAtLevel(characterId, className, 1, ct);
-
-            // Increment character total level
-            var c = await _repository.GetByIdAsync(characterId, ct);
-            if (c is not null)
-            {
-                c.Level += 1;
-                c.UpdatedAt = DateTime.UtcNow;
-                await _repository.SaveChangesAsync(ct);
-            }
-        }
+        var subclasses = await _classRepository.GetSubclassesForClassAsync(className, ct);
+        return subclasses.Select(CharacterMapper.ToSubclassDto).ToList();
     }
 
-    private async Task SeedCharacterDefaults(int characterId, string race, string className, int level,
-        CancellationToken ct)
+    public async Task<CharacterClassDto> SetSubclassAsync(
+        int characterId, int classId, SetSubclassRequest request, int userId, CancellationToken ct = default)
     {
-        var c = await _repository.GetDetailByIdAsync(characterId, ct)
-                ?? throw new InvalidOperationException("Character not found after creation.");
+        var character = await GetOwnedDetailAsync(characterId, userId, ct);
+        var classEntry = character.Classes.FirstOrDefault(cc => cc.Id == classId)
+                         ?? throw new KeyNotFoundException("Class entry not found on this character.");
 
-        var now = DateTime.UtcNow;
+        var subclass = await _classRepository.GetSubclassByIdAsync(request.SubclassId, ct)
+            ?? throw new KeyNotFoundException($"Subclass {request.SubclassId} not found.");
 
-        foreach (var rf in DnD5eData.GetRaceFeatures(race))
-        {
-            var feature = new Feature
-            {
-                Name = rf.Name, Description = rf.Description, FeatureType = "race", SourceRace = race, CreatedAt = now,
-                UpdatedAt = now
-            };
-            c.Features.Add(feature);
-        }
+        if (subclass.ClassId != classEntry.ClassId)
+            throw new InvalidOperationException(
+                $"Subclass '{subclass.Name}' does not belong to {classEntry.Class?.Name ?? "this class"}.");
 
-        foreach (var cf in DnD5eData.GetClassFeaturesUpToLevel(className, level))
-        {
-            var feature = new Feature
-            {
-                Name = cf.Name, Description = cf.Description, FeatureType = "class", FeatureLevel = cf.Level,
-                SourceClass = className, CreatedAt = now, UpdatedAt = now
-            };
-            c.Features.Add(feature);
-        }
-
-        // Proficiency seeding (skills, weapons, armors, languages) is handled via CharacterProficiencies aggregate
-        // and resolved from Class/DnD5eData at character creation; implement when IClassRepository is available.
-
-        var slotRows = DnD5eData.GetSpellSlots(className, level);
-        foreach (var row in slotRows)
-            c.SpellSlots.Add(new SpellSlot
-                { SlotLevel = row[0], TotalSlots = row[1], RemainingSlots = row[1], CreatedAt = now, UpdatedAt = now });
-
+        classEntry.CharacterSubclassId = request.SubclassId;
+        classEntry.UpdatedAt           = DateTime.UtcNow;
         await _repository.SaveChangesAsync(ct);
 
-        var reloaded = await _repository.GetDetailByIdAsync(characterId, ct);
-        if (reloaded is null) return;
-        foreach (var feature in reloaded.Features)
-        foreach (var cf in feature.CharacterFeatures.Where(cf => cf.CharacterId == characterId))
-            cf.IsAutoAdded = true;
-        await _repository.SaveChangesAsync(ct);
+        var reloaded = await _repository.GetDetailByIdAsync(characterId, ct)!;
+        var reloadedEntry = reloaded!.Classes.First(cc => cc.Id == classId);
+        return CharacterMapper.ToClassDto(reloadedEntry);
     }
 
-    private async Task SeedClassFeaturesAtLevel(int characterId, string className, int level, CancellationToken ct)
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private static bool HasScoreChoice(LevelUpRequest req) =>
+        req.StrIncrease.HasValue || req.DexIncrease.HasValue || req.ConIncrease.HasValue
+        || req.IntIncrease.HasValue || req.WisIncrease.HasValue || req.ChaIncrease.HasValue;
+
+    private static void ApplyRaceProficiencies(CharacterProficiencies profs, Race race, DateTime now)
     {
-        var c = await _repository.GetDetailByIdAsync(characterId, ct);
-        if (c is null) return;
-        var now = DateTime.UtcNow;
-        foreach (var cf in DnD5eData.GetClassFeaturesAtLevel(className, level))
+        foreach (var wp in race.WeaponGrants)
+            profs.Weapons.Add(new WeaponProficiency { Name = wp.Name, CreatedAt = now, UpdatedAt = now });
+        foreach (var ap in race.ArmorGrants)
+            profs.Armors.Add(new ArmorProficiency { Name = ap.Name, CreatedAt = now, UpdatedAt = now });
+        foreach (var lg in race.LanguageGrants)
+            profs.Languages.Add(new Language { Name = lg.Name, CreatedAt = now, UpdatedAt = now });
+        foreach (var ig in race.InstrumentGrants)
+            profs.Instruments.Add(new Instrument { Name = ig.Name, CreatedAt = now, UpdatedAt = now });
+    }
+
+    private static void ApplyClassLevel1Proficiencies(CharacterProficiencies profs, Class cls, DateTime now)
+    {
+        var startingFeature = cls.ClassFeatures.FirstOrDefault(cf => cf.GainingLevel == 1 && cf.Name == "Starting Proficiencies");
+        if (startingFeature is null) return;
+
+        foreach (var wp in startingFeature.WeaponGrants)
+            profs.Weapons.Add(new WeaponProficiency { Name = wp.Name, CreatedAt = now, UpdatedAt = now });
+        foreach (var ap in startingFeature.ArmorGrants)
+            profs.Armors.Add(new ArmorProficiency { Name = ap.Name, CreatedAt = now, UpdatedAt = now });
+        foreach (var lg in startingFeature.LanguageGrants)
+            profs.Languages.Add(new Language { Name = lg.Name, CreatedAt = now, UpdatedAt = now });
+        foreach (var ig in startingFeature.InstrumentGrants)
+            profs.Instruments.Add(new Instrument { Name = ig.Name, CreatedAt = now, UpdatedAt = now });
+    }
+
+    private static void ApplyPlayerChoices(CharacterProficiencies profs, CreateCharacterRequest request, DateTime now)
+    {
+        foreach (var skillName in request.SkillChoices)
         {
-            if (c.Features.Any(f => f.Name == cf.Name && f.SourceClass == className)) continue;
-            var feature = new Feature
-            {
-                Name = cf.Name, Description = cf.Description, FeatureType = "class", FeatureLevel = cf.Level,
-                SourceClass = className, CreatedAt = now, UpdatedAt = now
-            };
-            c.Features.Add(feature);
+            if (Enum.TryParse<Skill>(skillName, true, out var skill))
+                profs.Skills.Add(new SkillProficiency { Skill = skill, HasExpertise = false, CreatedAt = now, UpdatedAt = now });
         }
-
-        await _repository.SaveChangesAsync(ct);
-
-        var reloaded = await _repository.GetDetailByIdAsync(characterId, ct);
-        if (reloaded is null) return;
-        foreach (var feature in reloaded.Features.Where(f => f.FeatureLevel == level && f.SourceClass == className))
-        foreach (var cf in feature.CharacterFeatures.Where(cf => cf.CharacterId == characterId && !cf.IsAutoAdded))
-            cf.IsAutoAdded = true;
-        await _repository.SaveChangesAsync(ct);
+        foreach (var w in request.WeaponChoices)
+            profs.Weapons.Add(new WeaponProficiency { Name = w, CreatedAt = now, UpdatedAt = now });
+        foreach (var a in request.ArmorChoices)
+            profs.Armors.Add(new ArmorProficiency { Name = a, CreatedAt = now, UpdatedAt = now });
+        foreach (var l in request.LanguageChoices)
+            profs.Languages.Add(new Language { Name = l, CreatedAt = now, UpdatedAt = now });
+        foreach (var i in request.InstrumentChoices)
+            profs.Instruments.Add(new Instrument { Name = i, CreatedAt = now, UpdatedAt = now });
     }
 
     private async Task<Character> GetOwnedDetailAsync(int id, int userId, CancellationToken ct)

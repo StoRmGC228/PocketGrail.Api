@@ -10,5 +10,6 @@ public class CharacterClass : BaseEntity
     public Class Class { get; set; } = null!;
     public int ClassLevel { get; set; }
     public int TotalHitDiceCount { get; set; }
+    public int? CharacterSubclassId { get; set; }
     public Subclass? CharacterSubclass { get; set; }
 }
