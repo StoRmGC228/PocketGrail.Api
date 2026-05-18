@@ -1,3 +1,5 @@
+using PocketGrail.Domain.Entities.Characters;
+
 namespace PocketGrail.Domain.Entities;
 
 public class Feat : BaseEntity

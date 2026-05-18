@@ -5,6 +5,7 @@ using PocketGrail.Application.DTOs;
 using PocketGrail.Application.Interfaces;
 using PocketGrail.Application.Mappers;
 using PocketGrail.Domain.Entities;
+using PocketGrail.Domain.Entities.Characters;
 
 public sealed class CharacterService : ICharacterService
 {
@@ -59,7 +60,6 @@ public sealed class CharacterService : ICharacterService
             ImageUrl = imageUrl,
             OwnerId = userId,
             CampaignId = request.CampaignId,
-            SpellAbility = DnD5eData.GetSpellAbility(request.ClassName),
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -78,7 +78,7 @@ public sealed class CharacterService : ICharacterService
         await AddClassToCharacterInternalAsync(character.Id, request.ClassName, isFirstClass: true, ct);
 
         var created = await _repository.GetByIdAsync(character.Id, ct)
-            ?? throw new InvalidOperationException("Failed to retrieve created character.");
+                      ?? throw new InvalidOperationException("Failed to retrieve created character.");
         return CharacterMapper.ToDto(created);
     }
 
@@ -86,8 +86,9 @@ public sealed class CharacterService : ICharacterService
         int id, UpdateCharacterRequest request, int userId, CancellationToken ct = default)
     {
         var character = await _repository.GetDetailByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException("Character not found.");
-        if (character.OwnerId != userId) throw new UnauthorizedAccessException("Only the character owner can update it.");
+                        ?? throw new KeyNotFoundException("Character not found.");
+        if (character.OwnerId != userId)
+            throw new UnauthorizedAccessException("Only the character owner can update it.");
 
         if (request.Name is not null) character.Name = request.Name;
         if (request.Race is not null) character.Race = request.Race;
@@ -95,7 +96,6 @@ public sealed class CharacterService : ICharacterService
         if (request.MaxHp.HasValue) character.MaxHp = request.MaxHp.Value;
         if (request.CampaignId.HasValue) character.CampaignId = request.CampaignId.Value;
         if (request.Alignment is not null) character.Alignment = request.Alignment;
-        if (request.SpellAbility is not null) character.SpellAbility = request.SpellAbility;
         if (request.BackgroundStory is not null) character.BackgroundStory = request.BackgroundStory;
         if (request.Appearance is not null) character.Appearance = request.Appearance;
         if (request.Notes is not null) character.Notes = request.Notes;
@@ -112,33 +112,41 @@ public sealed class CharacterService : ICharacterService
     public async Task DeleteCharacterAsync(int id, int userId, CancellationToken ct = default)
     {
         var character = await _repository.GetByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException("Character not found.");
-        if (character.OwnerId != userId) throw new UnauthorizedAccessException("Only the character owner can delete it.");
+                        ?? throw new KeyNotFoundException("Character not found.");
+        if (character.OwnerId != userId)
+            throw new UnauthorizedAccessException("Only the character owner can delete it.");
         await _repository.DeleteAsync(character, ct);
         await _repository.SaveChangesAsync(ct);
     }
 
     // ── Stats / Vitals / Wallet / Image ───────────────────────────────────────
 
-    public async Task<CharacterDetailDto> UpdateStatsAsync(int id, UpdateStatsRequest request, int userId, CancellationToken ct = default)
+    public async Task<CharacterDetailDto> UpdateStatsAsync(int id, UpdateStatsRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(id, userId, ct);
-        if (request.StrScore.HasValue) c.StrScore = request.StrScore.Value;
-        if (request.DexScore.HasValue) c.DexScore = request.DexScore.Value;
-        if (request.ConScore.HasValue) c.ConScore = request.ConScore.Value;
-        if (request.IntScore.HasValue) c.IntScore = request.IntScore.Value;
-        if (request.WisScore.HasValue) c.WisScore = request.WisScore.Value;
-        if (request.ChaScore.HasValue) c.ChaScore = request.ChaScore.Value;
+        var now = DateTime.UtcNow;
+        if (c.CharacterStats is null)
+        {
+            c.CharacterStats = new CharacterStats { CharacterId = c.Id, CreatedAt = now, UpdatedAt = now };
+        }
+        if (request.StrScore.HasValue) c.CharacterStats.Strength = request.StrScore.Value;
+        if (request.DexScore.HasValue) c.CharacterStats.Dexterity = request.DexScore.Value;
+        if (request.ConScore.HasValue) c.CharacterStats.Constitution = request.ConScore.Value;
+        if (request.IntScore.HasValue) c.CharacterStats.Intelligence = request.IntScore.Value;
+        if (request.WisScore.HasValue) c.CharacterStats.Wisdom = request.WisScore.Value;
+        if (request.ChaScore.HasValue) c.CharacterStats.Charisma = request.ChaScore.Value;
         if (request.ArmorClass.HasValue) c.ArmorClass = request.ArmorClass.Value;
         if (request.Speed.HasValue) c.Speed = request.Speed.Value;
-        if (request.SpellAbility is not null) c.SpellAbility = request.SpellAbility;
         if (request.Alignment is not null) c.Alignment = request.Alignment;
-        c.UpdatedAt = DateTime.UtcNow;
+        c.CharacterStats.UpdatedAt = now;
+        c.UpdatedAt = now;
         await _repository.SaveChangesAsync(ct);
         return CharacterMapper.ToDetailDto(c);
     }
 
-    public async Task<CharacterDetailDto> UpdateVitalsAsync(int id, UpdateVitalsRequest request, int userId, CancellationToken ct = default)
+    public async Task<CharacterDetailDto> UpdateVitalsAsync(int id, UpdateVitalsRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(id, userId, ct);
         if (request.CurrentHp.HasValue) c.CurrentHp = request.CurrentHp.Value;
@@ -154,10 +162,12 @@ public sealed class CharacterService : ICharacterService
         return CharacterMapper.ToDetailDto(c);
     }
 
-    public async Task<CharacterDetailDto> UpdateWalletAsync(int id, UpdateWalletRequest request, int userId, CancellationToken ct = default)
+    public async Task<CharacterDetailDto> UpdateWalletAsync(int id, UpdateWalletRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(id, userId, ct);
-        var wallet = c.Wallet ?? new CharacterWallet { CharacterId = c.Id, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        var wallet = c.Wallet ?? new CharacterWallet
+            { CharacterId = c.Id, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
         if (request.CpCoins.HasValue) wallet.CpCoins = request.CpCoins.Value;
         if (request.SpCoins.HasValue) wallet.SpCoins = request.SpCoins.Value;
         if (request.EpCoins.HasValue) wallet.EpCoins = request.EpCoins.Value;
@@ -170,7 +180,8 @@ public sealed class CharacterService : ICharacterService
         return CharacterMapper.ToDetailDto(c);
     }
 
-    public async Task<CharacterDetailDto> UpdateImageAsync(int id, UpdateCharacterImageRequest request, int userId, CancellationToken ct = default)
+    public async Task<CharacterDetailDto> UpdateImageAsync(int id, UpdateCharacterImageRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(id, userId, ct);
         var folder = $"pocket-grail/characters/{id}";
@@ -186,7 +197,8 @@ public sealed class CharacterService : ICharacterService
 
     // ── Items ──────────────────────────────────────────────────────────────────
 
-    public async Task<ItemDto> AddItemAsync(int characterId, AddItemRequest request, int userId, CancellationToken ct = default)
+    public async Task<ItemDto> AddItemAsync(int characterId, AddItemRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var item = new Item
@@ -224,13 +236,14 @@ public sealed class CharacterService : ICharacterService
         return CharacterMapper.ToItemDto(item, request.IsEquipped, request.IsAttuned, request.Quantity);
     }
 
-    public async Task<ItemDto> UpdateItemAsync(int characterId, int itemId, UpdateItemRequest request, int userId, CancellationToken ct = default)
+    public async Task<ItemDto> UpdateItemAsync(int characterId, int itemId, UpdateItemRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var item = c.Items.FirstOrDefault(i => i.Id == itemId)
-            ?? throw new KeyNotFoundException("Item not found on this character.");
+                   ?? throw new KeyNotFoundException("Item not found on this character.");
         var junction = item.CharacterItems.FirstOrDefault(ci => ci.CharacterId == characterId)
-            ?? throw new KeyNotFoundException("Item junction not found on this character.");
+                       ?? throw new KeyNotFoundException("Item junction not found on this character.");
         if (request.IsEquipped.HasValue) junction.IsEquipped = request.IsEquipped.Value;
         if (request.IsAttuned.HasValue) junction.IsAttuned = request.IsAttuned.Value;
         if (request.Quantity.HasValue) junction.Quantity = request.Quantity.Value;
@@ -242,14 +255,15 @@ public sealed class CharacterService : ICharacterService
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var item = c.Items.FirstOrDefault(i => i.Id == itemId)
-            ?? throw new KeyNotFoundException("Item not found on this character.");
+                   ?? throw new KeyNotFoundException("Item not found on this character.");
         c.Items.Remove(item);
         await _repository.SaveChangesAsync(ct);
     }
 
     // ── Spells ─────────────────────────────────────────────────────────────────
 
-    public async Task<SpellDto> AddSpellAsync(int characterId, AddSpellRequest request, int userId, CancellationToken ct = default)
+    public async Task<SpellDto> AddSpellAsync(int characterId, AddSpellRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var spell = new Spell
@@ -278,13 +292,14 @@ public sealed class CharacterService : ICharacterService
         return CharacterMapper.ToSpellDto(spell, request.Prepared);
     }
 
-    public async Task<SpellDto> ToggleSpellPreparedAsync(int characterId, int spellId, int userId, CancellationToken ct = default)
+    public async Task<SpellDto> ToggleSpellPreparedAsync(int characterId, int spellId, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var spell = c.Spells.FirstOrDefault(s => s.Id == spellId)
-            ?? throw new KeyNotFoundException("Spell not found on this character.");
+                    ?? throw new KeyNotFoundException("Spell not found on this character.");
         var junction = spell.CharacterSpells.FirstOrDefault(cs => cs.CharacterId == characterId)
-            ?? throw new KeyNotFoundException("Spell junction not found on this character.");
+                       ?? throw new KeyNotFoundException("Spell junction not found on this character.");
         junction.Prepared = !junction.Prepared;
         await _repository.SaveChangesAsync(ct);
         return CharacterMapper.ToSpellDto(spell, junction.Prepared);
@@ -294,24 +309,29 @@ public sealed class CharacterService : ICharacterService
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var spell = c.Spells.FirstOrDefault(s => s.Id == spellId)
-            ?? throw new KeyNotFoundException("Spell not found on this character.");
+                    ?? throw new KeyNotFoundException("Spell not found on this character.");
         c.Spells.Remove(spell);
         await _repository.SaveChangesAsync(ct);
     }
 
-    public async Task<SpellSlotDto> UpdateSpellSlotAsync(int characterId, UpdateSpellSlotRequest request, int userId, CancellationToken ct = default)
+    public async Task<SpellSlotDto> UpdateSpellSlotAsync(int characterId, UpdateSpellSlotRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var slot = c.SpellSlots.FirstOrDefault(s => s.SlotLevel == request.SlotLevel)
-            ?? throw new KeyNotFoundException($"No spell slot of level {request.SlotLevel} found.");
+                   ?? throw new KeyNotFoundException($"No spell slot of level {request.SlotLevel} found.");
         slot.RemainingSlots = Math.Clamp(request.RemainingSlots, 0, slot.TotalSlots);
         await _repository.SaveChangesAsync(ct);
-        return new SpellSlotDto { Id = slot.Id, SlotLevel = slot.SlotLevel, TotalSlots = slot.TotalSlots, RemainingSlots = slot.RemainingSlots };
+        return new SpellSlotDto
+        {
+            Id = slot.Id, SlotLevel = slot.SlotLevel, TotalSlots = slot.TotalSlots, RemainingSlots = slot.RemainingSlots
+        };
     }
 
     // ── Feats ──────────────────────────────────────────────────────────────────
 
-    public async Task<FeatDto> AddFeatAsync(int characterId, AddFeatRequest request, int userId, CancellationToken ct = default)
+    public async Task<FeatDto> AddFeatAsync(int characterId, AddFeatRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var feat = new Feat
@@ -324,21 +344,23 @@ public sealed class CharacterService : ICharacterService
         };
         c.Feats.Add(feat);
         await _repository.SaveChangesAsync(ct);
-        return new FeatDto { Id = feat.Id, Name = feat.Name, Requirement = feat.Requirement, Description = feat.Description };
+        return new FeatDto
+            { Id = feat.Id, Name = feat.Name, Requirement = feat.Requirement, Description = feat.Description };
     }
 
     public async Task DeleteFeatAsync(int characterId, int featId, int userId, CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var feat = c.Feats.FirstOrDefault(f => f.Id == featId)
-            ?? throw new KeyNotFoundException("Feat not found on this character.");
+                   ?? throw new KeyNotFoundException("Feat not found on this character.");
         c.Feats.Remove(feat);
         await _repository.SaveChangesAsync(ct);
     }
 
     // ── Features ───────────────────────────────────────────────────────────────
 
-    public async Task<FeatureDto> AddFeatureAsync(int characterId, AddFeatureRequest request, int userId, CancellationToken ct = default)
+    public async Task<FeatureDto> AddFeatureAsync(int characterId, AddFeatureRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var feature = new Feature
@@ -361,59 +383,66 @@ public sealed class CharacterService : ICharacterService
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
         var feature = c.Features.FirstOrDefault(f => f.Id == featureId)
-            ?? throw new KeyNotFoundException("Feature not found on this character.");
+                      ?? throw new KeyNotFoundException("Feature not found on this character.");
         c.Features.Remove(feature);
         await _repository.SaveChangesAsync(ct);
     }
 
     // ── Proficiencies ──────────────────────────────────────────────────────────
 
-    public async Task<ProficiencyDto> AddProficiencyAsync(int characterId, AddProficiencyRequest request, int userId, CancellationToken ct = default)
+    public async Task<ProficiencyDto> AddProficiencyAsync(int characterId, AddProficiencyRequest request, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
-        var proficiency = new Proficiency
-        {
-            Name = request.Name,
-            ProficiencyType = request.ProficiencyType,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-        };
-        c.Proficiencies.Add(proficiency);
-        await _repository.SaveChangesAsync(ct);
+        var now = DateTime.UtcNow;
 
-        var junction = proficiency.CharacterProficiencies.FirstOrDefault(cp => cp.CharacterId == characterId);
-        if (junction is not null)
+        if (c.Proficiencies is null)
         {
-            junction.HasExpertise = request.HasExpertise;
-            junction.AbilityKey = request.AbilityKey;
-            await _repository.SaveChangesAsync(ct);
+            c.Proficiencies = new CharacterProficiencies
+                { CharacterId = c.Id, CreatedAt = now, UpdatedAt = now };
         }
 
+        // Route to the appropriate collection based on type
+        if (request.ProficiencyType == "skill" &&
+            Enum.TryParse<PocketGrail.Domain.Entities.Enums.Skill>(request.Name, true, out var skill))
+        {
+            c.Proficiencies.Skills.Add(new PocketGrail.Domain.Entities.Proficiencies.SkillProficiency
+            {
+                Skill = skill, HasExpertise = request.HasExpertise,
+                CharacterProficienciesId = c.Proficiencies.Id,
+                CreatedAt = now, UpdatedAt = now
+            });
+        }
+
+        await _repository.SaveChangesAsync(ct);
         return new ProficiencyDto
         {
-            Id = proficiency.Id,
-            Name = proficiency.Name,
-            ProficiencyType = proficiency.ProficiencyType,
-            HasExpertise = request.HasExpertise,
-            AbilityKey = request.AbilityKey
+            Id = 0, Name = request.Name, ProficiencyType = request.ProficiencyType,
+            HasExpertise = request.HasExpertise, AbilityKey = request.AbilityKey
         };
     }
 
-    public async Task DeleteProficiencyAsync(int characterId, int proficiencyId, int userId, CancellationToken ct = default)
+    public async Task DeleteProficiencyAsync(int characterId, int proficiencyId, int userId,
+        CancellationToken ct = default)
     {
         var c = await GetOwnedDetailAsync(characterId, userId, ct);
-        var proficiency = c.Proficiencies.FirstOrDefault(p => p.Id == proficiencyId)
-            ?? throw new KeyNotFoundException("Proficiency not found on this character.");
-        c.Proficiencies.Remove(proficiency);
-        await _repository.SaveChangesAsync(ct);
+        if (c.Proficiencies is null) return;
+
+        var skill = c.Proficiencies.Skills.FirstOrDefault(s => s.Id == proficiencyId);
+        if (skill is not null)
+        {
+            c.Proficiencies.Skills.Remove(skill);
+            await _repository.SaveChangesAsync(ct);
+        }
     }
 
     // ── Allies ─────────────────────────────────────────────────────────────────
 
-    public async Task<IReadOnlyList<AllyDto>> GetAlliesAsync(int characterId, int userId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AllyDto>> GetAlliesAsync(int characterId, int userId,
+        CancellationToken ct = default)
     {
         var character = await _repository.GetByIdAsync(characterId, ct)
-            ?? throw new KeyNotFoundException("Character not found.");
+                        ?? throw new KeyNotFoundException("Character not found.");
         if (character.OwnerId != userId) throw new UnauthorizedAccessException("Access denied.");
         if (character.CampaignId is null) return [];
 
@@ -448,13 +477,14 @@ public sealed class CharacterService : ICharacterService
     {
         var character = await GetOwnedDetailAsync(characterId, userId, ct);
 
-        if (character.Classes.Any(cc => cc.ClassName.Equals(request.ClassName, StringComparison.OrdinalIgnoreCase)))
+        if (character.Classes.Any(cc => cc.Class?.Name.Equals(request.ClassName, StringComparison.OrdinalIgnoreCase) == true))
             throw new InvalidOperationException($"Character already has a level in {request.ClassName}.");
 
         await AddClassToCharacterInternalAsync(characterId, request.ClassName, isFirstClass: false, ct);
 
         var reloaded = await _repository.GetDetailByIdAsync(characterId, ct)!;
-        var newClass = reloaded!.Classes.First(cc => cc.ClassName.Equals(request.ClassName, StringComparison.OrdinalIgnoreCase));
+        var newClass = reloaded!.Classes.First(cc =>
+            cc.Class?.Name.Equals(request.ClassName, StringComparison.OrdinalIgnoreCase) == true);
         return CharacterMapper.ToClassDto(newClass);
     }
 
@@ -463,16 +493,16 @@ public sealed class CharacterService : ICharacterService
     {
         var character = await GetOwnedDetailAsync(characterId, userId, ct);
         var classEntry = character.Classes.FirstOrDefault(cc => cc.Id == classId)
-            ?? throw new KeyNotFoundException("Class entry not found on this character.");
+                         ?? throw new KeyNotFoundException("Class entry not found on this character.");
 
         classEntry.ClassLevel += 1;
-        classEntry.TotalHitDice += 1;
+        classEntry.TotalHitDiceCount += 1;
         character.Level += 1;
         character.UpdatedAt = DateTime.UtcNow;
         classEntry.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync(ct);
-        await SeedClassFeaturesAtLevel(characterId, classEntry.ClassName, classEntry.ClassLevel, ct);
+        await SeedClassFeaturesAtLevel(characterId, classEntry.Class?.Name ?? string.Empty, classEntry.ClassLevel, ct);
 
         return CharacterMapper.ToClassDto(classEntry);
     }
@@ -482,18 +512,19 @@ public sealed class CharacterService : ICharacterService
     {
         var character = await GetOwnedDetailAsync(characterId, userId, ct);
         var classEntry = character.Classes.FirstOrDefault(cc => cc.Id == classId)
-            ?? throw new KeyNotFoundException("Class entry not found on this character.");
+                         ?? throw new KeyNotFoundException("Class entry not found on this character.");
 
-        if (request.Subclass is not null) classEntry.Subclass = request.Subclass;
+        // Subclass update requires a DB lookup — not implemented yet (needs IClassRepository)
         if (request.UsedHitDice.HasValue)
-            classEntry.UsedHitDice = Math.Clamp(request.UsedHitDice.Value, 0, classEntry.TotalHitDice);
+            character.UsedHitDice = Math.Clamp(request.UsedHitDice.Value, 0, classEntry.TotalHitDiceCount);
 
         classEntry.UpdatedAt = DateTime.UtcNow;
         await _repository.SaveChangesAsync(ct);
         return CharacterMapper.ToClassDto(classEntry);
     }
 
-    public async Task DeleteCharacterClassAsync(int characterId, int classId, int userId, CancellationToken ct = default)
+    public async Task DeleteCharacterClassAsync(int characterId, int classId, int userId,
+        CancellationToken ct = default)
     {
         var character = await GetOwnedDetailAsync(characterId, userId, ct);
 
@@ -501,9 +532,9 @@ public sealed class CharacterService : ICharacterService
             throw new InvalidOperationException("Cannot remove the last class from a character.");
 
         var classEntry = character.Classes.FirstOrDefault(cc => cc.Id == classId)
-            ?? throw new KeyNotFoundException("Class entry not found on this character.");
+                         ?? throw new KeyNotFoundException("Class entry not found on this character.");
 
-        var className = classEntry.ClassName;
+        var className = classEntry.Class?.Name ?? string.Empty;
         var classLevel = classEntry.ClassLevel;
 
         character.Classes.Remove(classEntry);
@@ -513,7 +544,7 @@ public sealed class CharacterService : ICharacterService
         // Remove auto-added class features from this class
         var featuresToRemove = character.Features
             .Where(f => string.Equals(f.SourceClass, className, StringComparison.OrdinalIgnoreCase)
-                     && f.CharacterFeatures.Any(cf => cf.CharacterId == characterId && cf.IsAutoAdded))
+                        && f.CharacterFeatures.Any(cf => cf.CharacterId == characterId && cf.IsAutoAdded))
             .ToList();
         foreach (var f in featuresToRemove)
             character.Features.Remove(f);
@@ -523,22 +554,20 @@ public sealed class CharacterService : ICharacterService
 
     // ── Seeding helpers ────────────────────────────────────────────────────────
 
-    private async Task AddClassToCharacterInternalAsync(int characterId, string className, bool isFirstClass, CancellationToken ct)
+    private async Task AddClassToCharacterInternalAsync(int characterId, string className, bool isFirstClass,
+        CancellationToken ct)
     {
         var character = await _repository.GetDetailByIdAsync(characterId, ct)
-            ?? throw new InvalidOperationException("Character not found.");
+                        ?? throw new InvalidOperationException("Character not found.");
 
         var now = DateTime.UtcNow;
-        var hitDice = DnD5eData.GetHitDice(className);
 
+        // ClassId lookup requires IClassRepository — placeholder until it is implemented
         var characterClass = new CharacterClass
         {
             CharacterId = characterId,
-            ClassName = className,
             ClassLevel = 1,
-            HitDice = hitDice,
-            TotalHitDice = 1,
-            UsedHitDice = 0,
+            TotalHitDiceCount = 1,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -546,36 +575,8 @@ public sealed class CharacterService : ICharacterService
 
         if (isFirstClass)
         {
-            // Seed saving throw proficiencies (first class only per D&D 5e multiclass rules)
-            foreach (var abilityKey in DnD5eData.GetSavingThrows(className))
-            {
-                var proficiency = new Proficiency
-                {
-                    Name = $"{abilityKey.ToUpperInvariant()} saving throw",
-                    ProficiencyType = "saving_throw",
-                    CreatedAt = now,
-                    UpdatedAt = now
-                };
-                character.Proficiencies.Add(proficiency);
-            }
-
+            // Saving throws come from ClassSavingThrowProficiency via the Class entity — no manual seeding needed
             await _repository.SaveChangesAsync(ct);
-
-            // Set AbilityKey on the saving throw proficiency junctions
-            var reloaded = await _repository.GetDetailByIdAsync(characterId, ct);
-            if (reloaded is not null)
-            {
-                var savingThrows = DnD5eData.GetSavingThrows(className);
-                foreach (var p in reloaded.Proficiencies.Where(p => p.ProficiencyType == "saving_throw"))
-                {
-                    var junction = p.CharacterProficiencies.FirstOrDefault(cp => cp.CharacterId == characterId);
-                    if (junction is null) continue;
-                    var key = savingThrows.FirstOrDefault(k => p.Name.StartsWith(k, StringComparison.OrdinalIgnoreCase));
-                    if (key is not null) junction.AbilityKey = key;
-                }
-                await _repository.SaveChangesAsync(ct);
-            }
-
             await SeedCharacterDefaults(characterId, character.Race, className, 1, ct);
         }
         else
@@ -595,42 +596,49 @@ public sealed class CharacterService : ICharacterService
         }
     }
 
-    private async Task SeedCharacterDefaults(int characterId, string race, string className, int level, CancellationToken ct)
+    private async Task SeedCharacterDefaults(int characterId, string race, string className, int level,
+        CancellationToken ct)
     {
         var c = await _repository.GetDetailByIdAsync(characterId, ct)
-            ?? throw new InvalidOperationException("Character not found after creation.");
+                ?? throw new InvalidOperationException("Character not found after creation.");
 
         var now = DateTime.UtcNow;
 
         foreach (var rf in DnD5eData.GetRaceFeatures(race))
         {
-            var feature = new Feature { Name = rf.Name, Description = rf.Description, FeatureType = "race", SourceRace = race, CreatedAt = now, UpdatedAt = now };
+            var feature = new Feature
+            {
+                Name = rf.Name, Description = rf.Description, FeatureType = "race", SourceRace = race, CreatedAt = now,
+                UpdatedAt = now
+            };
             c.Features.Add(feature);
         }
 
         foreach (var cf in DnD5eData.GetClassFeaturesUpToLevel(className, level))
         {
-            var feature = new Feature { Name = cf.Name, Description = cf.Description, FeatureType = "class", FeatureLevel = cf.Level, SourceClass = className, CreatedAt = now, UpdatedAt = now };
+            var feature = new Feature
+            {
+                Name = cf.Name, Description = cf.Description, FeatureType = "class", FeatureLevel = cf.Level,
+                SourceClass = className, CreatedAt = now, UpdatedAt = now
+            };
             c.Features.Add(feature);
         }
 
-        foreach (var pf in DnD5eData.GetClassProficiencies(className))
-        {
-            var proficiency = new Proficiency { Name = pf.Name, ProficiencyType = pf.Type, CreatedAt = now, UpdatedAt = now };
-            c.Proficiencies.Add(proficiency);
-        }
+        // Proficiency seeding (skills, weapons, armors, languages) is handled via CharacterProficiencies aggregate
+        // and resolved from Class/DnD5eData at character creation; implement when IClassRepository is available.
 
         var slotRows = DnD5eData.GetSpellSlots(className, level);
         foreach (var row in slotRows)
-            c.SpellSlots.Add(new SpellSlot { SlotLevel = row[0], TotalSlots = row[1], RemainingSlots = row[1], CreatedAt = now, UpdatedAt = now });
+            c.SpellSlots.Add(new SpellSlot
+                { SlotLevel = row[0], TotalSlots = row[1], RemainingSlots = row[1], CreatedAt = now, UpdatedAt = now });
 
         await _repository.SaveChangesAsync(ct);
 
         var reloaded = await _repository.GetDetailByIdAsync(characterId, ct);
         if (reloaded is null) return;
         foreach (var feature in reloaded.Features)
-            foreach (var cf in feature.CharacterFeatures.Where(cf => cf.CharacterId == characterId))
-                cf.IsAutoAdded = true;
+        foreach (var cf in feature.CharacterFeatures.Where(cf => cf.CharacterId == characterId))
+            cf.IsAutoAdded = true;
         await _repository.SaveChangesAsync(ct);
     }
 
@@ -642,23 +650,28 @@ public sealed class CharacterService : ICharacterService
         foreach (var cf in DnD5eData.GetClassFeaturesAtLevel(className, level))
         {
             if (c.Features.Any(f => f.Name == cf.Name && f.SourceClass == className)) continue;
-            var feature = new Feature { Name = cf.Name, Description = cf.Description, FeatureType = "class", FeatureLevel = cf.Level, SourceClass = className, CreatedAt = now, UpdatedAt = now };
+            var feature = new Feature
+            {
+                Name = cf.Name, Description = cf.Description, FeatureType = "class", FeatureLevel = cf.Level,
+                SourceClass = className, CreatedAt = now, UpdatedAt = now
+            };
             c.Features.Add(feature);
         }
+
         await _repository.SaveChangesAsync(ct);
 
         var reloaded = await _repository.GetDetailByIdAsync(characterId, ct);
         if (reloaded is null) return;
         foreach (var feature in reloaded.Features.Where(f => f.FeatureLevel == level && f.SourceClass == className))
-            foreach (var cf in feature.CharacterFeatures.Where(cf => cf.CharacterId == characterId && !cf.IsAutoAdded))
-                cf.IsAutoAdded = true;
+        foreach (var cf in feature.CharacterFeatures.Where(cf => cf.CharacterId == characterId && !cf.IsAutoAdded))
+            cf.IsAutoAdded = true;
         await _repository.SaveChangesAsync(ct);
     }
 
     private async Task<Character> GetOwnedDetailAsync(int id, int userId, CancellationToken ct)
     {
         var c = await _repository.GetDetailByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException("Character not found.");
+                ?? throw new KeyNotFoundException("Character not found.");
         if (c.OwnerId != userId) throw new UnauthorizedAccessException("Access denied.");
         return c;
     }
