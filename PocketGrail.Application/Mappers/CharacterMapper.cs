@@ -142,12 +142,13 @@ public static class CharacterMapper
 
     public static ClassDto ToClassInfoDto(Class c) => new()
     {
-        Id              = c.Id,
-        Name            = c.Name,
-        HitDice         = c.HitDice,
-        SpellAbility    = c.SpellAbility,
+        Id               = c.Id,
+        Name             = c.Name,
+        HitDice          = c.HitDice,
+        SpellAbility     = c.SpellAbility,
         SkillChoiceCount = c.SkillChoiceCount,
-        Subclasses      = c.Subclasses?.Select(ToSubclassDto).ToList() ?? []
+        AvailableSkillChoices = c.AvailableSkillChoices?.Select(s => s.Skill.ToString()).ToList() ?? [],
+        Subclasses       = c.Subclasses?.Select(ToSubclassDto).ToList() ?? []
     };
 
     public static RaceDto ToRaceDto(Race r) => new()
@@ -162,10 +163,21 @@ public static class CharacterMapper
         WisBonus            = r.WisBonus,
         ChaBonus            = r.ChaBonus,
         FlexibleBonusPoints = r.FlexibleBonusPoints,
+        FlexBonusSlots      = r.FlexBonusSlots ?? [],
         WeaponGrants        = r.WeaponGrants.Select(w => w.Name).ToList(),
         ArmorGrants         = r.ArmorGrants.Select(a => a.Name).ToList(),
         LanguageGrants      = r.LanguageGrants.Select(l => l.Name).ToList(),
         InstrumentGrants    = r.InstrumentGrants.Select(i => i.Name).ToList(),
         Features            = r.Features.Select(f => new RaceFeatureDto { Id = f.Id, Name = f.Name, Description = f.Description }).ToList()
+    };
+
+    public static ClassStartingItemSetDto ToStartingItemSetDto(ClassStartingItemSet s) => new()
+    {
+        ChoicePairs = s.ChoicePairs.Select(p => new StartingItemChoicePairDto
+        {
+            Id      = p.Id,
+            OptionA = p.OptionA.Select(i => new StartingItemDto { Id = i.Id, Name = i.Name, Description = i.Description }).ToList(),
+            OptionB = p.OptionB.Select(i => new StartingItemDto { Id = i.Id, Name = i.Name, Description = i.Description }).ToList(),
+        }).ToList()
     };
 }

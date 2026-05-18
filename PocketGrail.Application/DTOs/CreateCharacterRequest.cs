@@ -7,6 +7,8 @@ public sealed class CreateCharacterRequest
     public string Name { get; set; } = string.Empty;
     public string Race { get; set; } = string.Empty;
     public string ClassName { get; set; } = string.Empty;
+    public int StartLevel { get; set; } = 1;
+    public int? SubclassId { get; set; }
     public int? CampaignId { get; set; }
     public IFormFile? Image { get; set; }
 

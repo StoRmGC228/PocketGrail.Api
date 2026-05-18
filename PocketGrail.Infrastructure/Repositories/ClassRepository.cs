@@ -28,12 +28,24 @@ internal sealed class ClassRepository : IClassRepository
             .Include(c => c.SpellSlotTemplates)
             .Include(c => c.MulticlassPrerequisites)
             .Include(c => c.Subclasses)
+                .ThenInclude(s => s.SubclassFeatures)
+                    .ThenInclude(sf => sf.WeaponGrants)
+            .Include(c => c.Subclasses)
+                .ThenInclude(s => s.SubclassFeatures)
+                    .ThenInclude(sf => sf.ArmorGrants)
+            .Include(c => c.Subclasses)
+                .ThenInclude(s => s.SubclassFeatures)
+                    .ThenInclude(sf => sf.LanguageGrants)
+            .Include(c => c.Subclasses)
+                .ThenInclude(s => s.SubclassFeatures)
+                    .ThenInclude(sf => sf.InstrumentGrants)
             .AsSplitQuery()
             .FirstOrDefaultAsync(c => c.Name.ToLower() == name.ToLower(), ct);
 
     public async Task<IReadOnlyList<Class>> GetAllAsync(CancellationToken ct = default) =>
         await _context.Classes
             .Include(c => c.Subclasses)
+            .Include(c => c.AvailableSkillChoices)
             .OrderBy(c => c.Name)
             .ToListAsync(ct);
 
@@ -45,5 +57,22 @@ internal sealed class ClassRepository : IClassRepository
     public Task<Subclass?> GetSubclassByIdAsync(int id, CancellationToken ct = default) =>
         _context.Subclasses
             .Include(s => s.SourceClass)
+            .Include(s => s.SubclassFeatures)
+                .ThenInclude(sf => sf.WeaponGrants)
+            .Include(s => s.SubclassFeatures)
+                .ThenInclude(sf => sf.ArmorGrants)
+            .Include(s => s.SubclassFeatures)
+                .ThenInclude(sf => sf.LanguageGrants)
+            .Include(s => s.SubclassFeatures)
+                .ThenInclude(sf => sf.InstrumentGrants)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(s => s.Id == id, ct);
+
+    public Task<ClassStartingItemSet?> GetStartingItemsForClassAsync(string className, CancellationToken ct = default) =>
+        _context.ClassStartingItemSets
+            .Include(s => s.ChoicePairs)
+                .ThenInclude(p => p.OptionA)
+            .Include(s => s.ChoicePairs)
+                .ThenInclude(p => p.OptionB)
+            .FirstOrDefaultAsync(s => s.Class.Name.ToLower() == className.ToLower(), ct);
 }

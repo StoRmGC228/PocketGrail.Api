@@ -9,4 +9,5 @@ public interface IClassRepository
     Task<IReadOnlyList<Class>> GetAllAsync(CancellationToken ct = default);
     Task<IReadOnlyList<Subclass>> GetSubclassesForClassAsync(string className, CancellationToken ct = default);
     Task<Subclass?> GetSubclassByIdAsync(int id, CancellationToken ct = default);
+    Task<ClassStartingItemSet?> GetStartingItemsForClassAsync(string className, CancellationToken ct = default);
 }

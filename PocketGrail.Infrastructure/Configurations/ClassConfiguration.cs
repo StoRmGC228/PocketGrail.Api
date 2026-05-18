@@ -40,5 +40,15 @@ internal sealed class ClassConfiguration : IEntityTypeConfiguration<Class>
             .WithOne(p => p.Class)
             .HasForeignKey(p => p.ClassId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(c => c.AvailableSkillChoices)
+            .WithOne(s => s.Class)
+            .HasForeignKey(s => s.ClassId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(c => c.StartingItemSet)
+            .WithOne(s => s.Class)
+            .HasForeignKey<ClassStartingItemSet>(s => s.ClassId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

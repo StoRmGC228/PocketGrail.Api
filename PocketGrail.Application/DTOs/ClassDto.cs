@@ -7,5 +7,6 @@ public sealed class ClassDto
     public string HitDice { get; init; } = string.Empty;
     public string? SpellAbility { get; init; }
     public int SkillChoiceCount { get; init; }
+    public IReadOnlyList<string> AvailableSkillChoices { get; init; } = [];
     public IReadOnlyList<SubclassDto> Subclasses { get; init; } = [];
 }

@@ -14,8 +14,10 @@ public class Race : BaseEntity
     public int WisBonus { get; set; }
     public int ChaBonus { get; set; }
 
-    // Extra free +1 points the player distributes (e.g. Half-Elf = 2)
+    // Extra free bonus points the player distributes (e.g. Half-Elf = 2)
     public int FlexibleBonusPoints { get; set; }
+    // Each element is the max value of one slot (e.g. [2,1] = pick one stat +2 and another +1)
+    public List<int> FlexBonusSlots { get; set; } = [];
 
     public List<WeaponProficiency> WeaponGrants { get; set; } = [];
     public List<ArmorProficiency> ArmorGrants { get; set; } = [];
