@@ -33,4 +33,14 @@ public sealed class ClassesController : ControllerBase
         var subclasses = await _classRepository.GetSubclassesForClassAsync(className, ct);
         return Ok(subclasses.Select(CharacterMapper.ToSubclassDto).ToList());
     }
+
+    // GET /api/classes/{className}/starting-items
+    [HttpGet("{className}/starting-items")]
+    public async Task<IActionResult> GetStartingItems(string className, CancellationToken ct)
+    {
+        var set = await _classRepository.GetStartingItemsForClassAsync(className, ct);
+        if (set is null)
+            return Ok(new ClassStartingItemSetDto { ChoicePairs = [] });
+        return Ok(CharacterMapper.ToStartingItemSetDto(set));
+    }
 }

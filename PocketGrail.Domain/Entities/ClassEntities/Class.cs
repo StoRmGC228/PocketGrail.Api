@@ -24,5 +24,7 @@ namespace PocketGrail.Domain.Entities.ClassEntities
         public List<ClassSavingThrowProficiency> SavingThrows { get; set; } = [];
         public List<ClassSpellSlotTemplate> SpellSlotTemplates { get; set; } = [];
         public List<MulticlassPrerequisite> MulticlassPrerequisites { get; set; } = [];
+        public List<ClassStartSkillProficiency> AvailableSkillChoices { get; set; } = [];
+        public ClassStartingItemSet? StartingItemSet { get; set; }
     }
 }

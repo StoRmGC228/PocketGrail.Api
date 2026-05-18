@@ -17,6 +17,8 @@ internal sealed class DatabaseSeeder : IDatabaseSeeder
     {
         await SeedClassesAsync(ct);
         await SeedRacesAsync(ct);
+        await PatchRaceFlexBonusSlotsAsync(ct);
+        await SeedClassSkillChoicesAsync(ct);
     }
 
     // ── Classes ────────────────────────────────────────────────────────────────
@@ -366,7 +368,8 @@ internal sealed class DatabaseSeeder : IDatabaseSeeder
                     ("Darkvision", "Superior vision in dark and dim conditions. 60 ft."),
                     ("Fey Ancestry", "Advantage on saving throws against being charmed."),
                     ("Skill Versatility", "Proficiency in two skills of your choice."),
-                ]),
+                ],
+                flexBonusSlots: [1, 1]),
 
             BuildRace("Half-Orc", 30, 2,0,1,0,0,0, 0, now,
                 languages: ["Common", "Orc"],
@@ -439,7 +442,8 @@ internal sealed class DatabaseSeeder : IDatabaseSeeder
         DateTime now,
         string[] languages,
         string[] weapons,
-        (string Name, string Desc)[] features)
+        (string Name, string Desc)[] features,
+        int[]? flexBonusSlots = null)
     {
         return new Race
         {
@@ -452,6 +456,7 @@ internal sealed class DatabaseSeeder : IDatabaseSeeder
             WisBonus = wis,
             ChaBonus = cha,
             FlexibleBonusPoints = flexibleBonusPoints,
+            FlexBonusSlots = flexBonusSlots?.ToList() ?? [],
             LanguageGrants = languages
                 .Select(l => new Language { Name = l, CreatedAt = now, UpdatedAt = now })
                 .ToList(),
@@ -470,6 +475,76 @@ internal sealed class DatabaseSeeder : IDatabaseSeeder
             CreatedAt = now,
             UpdatedAt = now
         };
+    }
+
+    // ── Race flex bonus slot patches ──────────────────────────────────────────
+
+    private async Task PatchRaceFlexBonusSlotsAsync(CancellationToken ct)
+    {
+        // Map of race name → correct FlexBonusSlots (only races with flexible bonuses)
+        var patches = new Dictionary<string, List<int>>
+        {
+            ["Half-Elf"] = [1, 1],
+        };
+
+        var names = patches.Keys.ToList();
+        var races = await _context.Races
+            .Where(r => names.Contains(r.Name) && r.FlexBonusSlots.Count == 0)
+            .ToListAsync(ct);
+
+        if (races.Count == 0) return;
+
+        foreach (var race in races)
+            race.FlexBonusSlots = patches[race.Name];
+
+        await _context.SaveChangesAsync(ct);
+    }
+
+    // ── Class skill choices ────────────────────────────────────────────────────
+
+    private async Task SeedClassSkillChoicesAsync(CancellationToken ct)
+    {
+        if (await _context.ClassStartSkillProficiencies.AnyAsync(ct)) return;
+
+        var classSkillMap = new Dictionary<string, Skill[]>
+        {
+            ["Barbarian"] = [Skill.AnimalHandling, Skill.Athletics, Skill.Intimidation, Skill.Nature, Skill.Perception, Skill.Survival],
+            ["Bard"]      = [Skill.Acrobatics, Skill.AnimalHandling, Skill.Arcana, Skill.Athletics, Skill.Deception, Skill.History, Skill.Insight, Skill.Intimidation, Skill.Investigation, Skill.Medicine, Skill.Nature, Skill.Perception, Skill.Performance, Skill.Persuasion, Skill.Religion, Skill.SleightOfHand, Skill.Stealth, Skill.Survival],
+            ["Cleric"]    = [Skill.History, Skill.Insight, Skill.Medicine, Skill.Persuasion, Skill.Religion],
+            ["Druid"]     = [Skill.Arcana, Skill.AnimalHandling, Skill.Insight, Skill.Medicine, Skill.Nature, Skill.Perception, Skill.Religion, Skill.Survival],
+            ["Fighter"]   = [Skill.Acrobatics, Skill.AnimalHandling, Skill.Athletics, Skill.History, Skill.Insight, Skill.Intimidation, Skill.Perception, Skill.Survival],
+            ["Monk"]      = [Skill.Acrobatics, Skill.Athletics, Skill.History, Skill.Insight, Skill.Religion, Skill.Stealth],
+            ["Paladin"]   = [Skill.Athletics, Skill.Insight, Skill.Intimidation, Skill.Medicine, Skill.Persuasion, Skill.Religion],
+            ["Ranger"]    = [Skill.AnimalHandling, Skill.Athletics, Skill.Insight, Skill.Investigation, Skill.Nature, Skill.Perception, Skill.Stealth, Skill.Survival],
+            ["Rogue"]     = [Skill.Acrobatics, Skill.Athletics, Skill.Deception, Skill.Insight, Skill.Intimidation, Skill.Investigation, Skill.Perception, Skill.Performance, Skill.Persuasion, Skill.SleightOfHand, Skill.Stealth],
+            ["Sorcerer"]  = [Skill.Arcana, Skill.Deception, Skill.Insight, Skill.Intimidation, Skill.Persuasion, Skill.Religion],
+            ["Warlock"]   = [Skill.Arcana, Skill.Deception, Skill.History, Skill.Intimidation, Skill.Investigation, Skill.Nature, Skill.Religion],
+            ["Wizard"]    = [Skill.Arcana, Skill.History, Skill.Insight, Skill.Investigation, Skill.Medicine, Skill.Religion],
+            ["Artificer"] = [Skill.Arcana, Skill.History, Skill.Investigation, Skill.Medicine, Skill.Nature, Skill.Perception, Skill.SleightOfHand],
+        };
+
+        var classNames = classSkillMap.Keys.ToList();
+        var classes = await _context.Classes
+            .Where(c => classNames.Contains(c.Name))
+            .ToListAsync(ct);
+
+        var now = DateTime.UtcNow;
+        foreach (var cls in classes)
+        {
+            if (!classSkillMap.TryGetValue(cls.Name, out var skills)) continue;
+            foreach (var skill in skills)
+            {
+                _context.ClassStartSkillProficiencies.Add(new ClassStartSkillProficiency
+                {
+                    ClassId   = cls.Id,
+                    Skill     = skill,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
     }
 
     // ── Data constants ─────────────────────────────────────────────────────────

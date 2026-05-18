@@ -11,6 +11,7 @@ internal sealed class RaceConfiguration : IEntityTypeConfiguration<Race>
         builder.HasKey(r => r.Id);
         builder.Property(r => r.Name).IsRequired().HasMaxLength(50);
         builder.HasIndex(r => r.Name).IsUnique();
+        builder.Property(r => r.FlexBonusSlots).HasColumnType("integer[]");
 
         builder.HasMany(r => r.Features)
             .WithOne(f => f.SourceRace)

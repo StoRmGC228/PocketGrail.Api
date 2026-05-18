@@ -13,6 +13,7 @@ public sealed class RaceDto
     public int WisBonus { get; init; }
     public int ChaBonus { get; init; }
     public int FlexibleBonusPoints { get; init; }
+    public IReadOnlyList<int> FlexBonusSlots { get; init; } = [];
 
     public IReadOnlyList<string> WeaponGrants { get; init; } = [];
     public IReadOnlyList<string> ArmorGrants { get; init; } = [];

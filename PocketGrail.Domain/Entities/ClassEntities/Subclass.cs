@@ -7,4 +7,6 @@ public class Subclass : BaseEntity
 
     public string Name { get; set; } = string.Empty;
     public string? ShortDescription { get; set; }
+
+    public List<SubclassFeature> SubclassFeatures { get; set; } = [];
 }

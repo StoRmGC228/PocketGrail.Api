@@ -30,8 +30,12 @@ internal sealed class PocketGrailDbContext : DbContext
     public DbSet<Class> Classes => Set<Class>();
     public DbSet<Subclass> Subclasses => Set<Subclass>();
     public DbSet<ClassFeature> ClassFeatures => Set<ClassFeature>();
+    public DbSet<SubclassFeature> SubclassFeatures => Set<SubclassFeature>();
     public DbSet<MulticlassPrerequisite> MulticlassPrerequisites => Set<MulticlassPrerequisite>();
     public DbSet<ClassSpellSlotTemplate> ClassSpellSlotTemplates => Set<ClassSpellSlotTemplate>();
+    public DbSet<ClassStartSkillProficiency> ClassStartSkillProficiencies => Set<ClassStartSkillProficiency>();
+    public DbSet<ClassStartingItemSet> ClassStartingItemSets => Set<ClassStartingItemSet>();
+    public DbSet<ClassStartingItemChoicePair> ClassStartingItemChoicePairs => Set<ClassStartingItemChoicePair>();
     public DbSet<Race> Races => Set<Race>();
     public DbSet<RaceFeature> RaceFeatures => Set<RaceFeature>();
 

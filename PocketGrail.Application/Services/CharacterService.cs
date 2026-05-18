@@ -60,6 +60,8 @@ public sealed class CharacterService : ICharacterService
         var race = await _raceRepository.GetByNameWithDetailsAsync(request.Race, ct)
             ?? throw new KeyNotFoundException($"Race '{request.Race}' not found.");
 
+        var startLevel = Math.Max(1, request.StartLevel);
+
         if (race.FlexibleBonusPoints > 0)
         {
             var total = request.FlexStrBonus + request.FlexDexBonus + request.FlexConBonus
@@ -69,9 +71,19 @@ public sealed class CharacterService : ICharacterService
                     $"Must distribute exactly {race.FlexibleBonusPoints} flexible bonus points. Got {total}.");
         }
 
-        if (cls.SkillChoiceCount > 0 && request.SkillChoices.Count != cls.SkillChoiceCount)
+        if (cls.SkillChoiceCount > 0 && cls.AvailableSkillChoices.Count > 0 && request.SkillChoices.Count != cls.SkillChoiceCount)
             throw new InvalidOperationException(
                 $"Must choose exactly {cls.SkillChoiceCount} skills for {cls.Name}. Got {request.SkillChoices.Count}.");
+
+        Subclass? subclass = null;
+        if (request.SubclassId.HasValue)
+        {
+            subclass = await _classRepository.GetSubclassByIdAsync(request.SubclassId.Value, ct)
+                ?? throw new KeyNotFoundException($"Subclass {request.SubclassId} not found.");
+            if (subclass.ClassId != cls.Id)
+                throw new InvalidOperationException(
+                    $"Subclass '{subclass.Name}' does not belong to {cls.Name}.");
+        }
 
         string? imageUrl = null;
         if (request.Image is not null)
@@ -100,37 +112,62 @@ public sealed class CharacterService : ICharacterService
         {
             Name       = request.Name,
             Race       = request.Race,
-            Level      = 1,
+            Level      = startLevel,
             CurrentHp  = 0,
             MaxHp      = 0,
             Speed      = race.BaseSpeed,
             OwnerId    = userId,
             CampaignId = request.CampaignId,
+            ImageUrl   = imageUrl,
             CreatedAt  = now,
             UpdatedAt  = now,
-            Wallet        = new CharacterWallet { CreatedAt = now, UpdatedAt = now },
+            Wallet         = new CharacterWallet { CreatedAt = now, UpdatedAt = now },
             CharacterStats = stats,
             Proficiencies  = profs
         };
 
         character.Classes.Add(new CharacterClass
         {
-            ClassId           = cls.Id,
-            ClassLevel        = 1,
-            TotalHitDiceCount = 1,
-            CreatedAt         = now,
-            UpdatedAt         = now
+            ClassId             = cls.Id,
+            ClassLevel          = startLevel,
+            TotalHitDiceCount   = startLevel,
+            CharacterSubclassId = subclass?.Id,
+            CreatedAt           = now,
+            UpdatedAt           = now
         });
 
         foreach (var rf in race.Features)
             character.Features.Add(new Feature { Name = rf.Name, Description = rf.Description, CreatedAt = now, UpdatedAt = now });
 
-        foreach (var cf in cls.ClassFeatures.Where(cf => cf.GainingLevel == 1 && cf.Name != "Starting Proficiencies"))
+        // Apply all base class features for levels 1 through startLevel
+        foreach (var cf in cls.ClassFeatures.Where(cf =>
+            cf.GainingLevel <= startLevel
+            && cf.Name != "Starting Proficiencies"))
             character.Features.Add(new Feature { Name = cf.Name, Description = cf.Description, CreatedAt = now, UpdatedAt = now });
 
-        foreach (var t in cls.SpellSlotTemplates.Where(t => t.ClassLevel == 1 && t.TotalSlots > 0))
-            character.SpellSlots.Add(new SpellSlot
-                { SlotLevel = t.SpellSlotLevel, TotalSlots = t.TotalSlots, RemainingSlots = t.TotalSlots, CreatedAt = now, UpdatedAt = now });
+        // Apply subclass features for levels 1 through startLevel
+        if (subclass is not null)
+        {
+            foreach (var sf in subclass.SubclassFeatures.Where(sf => sf.GainingLevel <= startLevel))
+                character.Features.Add(new Feature { Name = sf.Name, Description = sf.Description, CreatedAt = now, UpdatedAt = now });
+        }
+
+        // Apply spell slots for all levels up to startLevel
+        for (var level = 1; level <= startLevel; level++)
+        {
+            foreach (var t in cls.SpellSlotTemplates.Where(t => t.ClassLevel == level && t.TotalSlots > 0))
+            {
+                var existing = character.SpellSlots.FirstOrDefault(s => s.SlotLevel == t.SpellSlotLevel);
+                if (existing is null)
+                    character.SpellSlots.Add(new SpellSlot
+                        { SlotLevel = t.SpellSlotLevel, TotalSlots = t.TotalSlots, RemainingSlots = t.TotalSlots, CreatedAt = now, UpdatedAt = now });
+                else if (t.TotalSlots > existing.TotalSlots)
+                {
+                    existing.TotalSlots     = t.TotalSlots;
+                    existing.RemainingSlots = t.TotalSlots;
+                }
+            }
+        }
 
         await _repository.AddAsync(character, ct);
         await _repository.SaveChangesAsync(ct);
