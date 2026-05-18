@@ -8,6 +8,7 @@ using PocketGrail.Application.Interfaces;
 using PocketGrail.Application.Services;
 using PocketGrail.Domain.Configuration;
 using PocketGrail.Infrastructure.Repositories;
+using PocketGrail.Infrastructure.Seeders;
 using PocketGrail.Infrastructure.Services;
 
 public static class InfrastructureConfiguration
@@ -59,6 +60,9 @@ public static class InfrastructureConfiguration
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ICharacterRepository, CharacterRepository>();
         services.AddScoped<ICharacterService, CharacterService>();
+        services.AddScoped<IClassRepository, ClassRepository>();
+        services.AddScoped<IRaceRepository, RaceRepository>();
+        services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
 
         return services;
     }

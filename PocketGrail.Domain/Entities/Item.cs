@@ -1,4 +1,4 @@
-namespace PocketGrail.Domain.Entities;
+namespace PocketGrail.Domain.Entities.Characters;
 
 public class Item : BaseEntity
 {
@@ -6,10 +6,10 @@ public class Item : BaseEntity
     public string? Description { get; set; }
     public string Rarity { get; set; } = "common";
     public string Category { get; set; } = "gear";
+
     public float Weight { get; set; }
     public string? Cost { get; set; }
 
-    // Weapon-specific
     public bool IsWeapon { get; set; }
     public bool IsMagical { get; set; }
     public string? AtkMod { get; set; }
@@ -18,7 +18,6 @@ public class Item : BaseEntity
     public string? WeaponProperties { get; set; }
     public string? ChargesInfo { get; set; }
     public string? RechargeType { get; set; }
-
     public string? Tags { get; set; }
 
     public ICollection<Character> Characters { get; set; } = [];

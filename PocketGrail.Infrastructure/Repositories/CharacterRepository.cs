@@ -2,7 +2,7 @@ namespace PocketGrail.Infrastructure.Repositories;
 
 using Microsoft.EntityFrameworkCore;
 using PocketGrail.Application.Interfaces;
-using PocketGrail.Domain.Entities;
+using PocketGrail.Domain.Entities.Characters;
 
 internal sealed class CharacterRepository : ICharacterRepository
 {
@@ -17,21 +17,28 @@ internal sealed class CharacterRepository : ICharacterRepository
         _context.Characters
             .Include(c => c.Owner)
             .Include(c => c.Campaign)
-            .Include(c => c.Classes)
+            .Include(c => c.Classes).ThenInclude(cc => cc.Class)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
     public Task<Character?> GetDetailByIdAsync(int id, CancellationToken ct = default) =>
         _context.Characters
             .Include(c => c.Owner)
             .Include(c => c.Campaign)
-            .Include(c => c.Classes)
+            .Include(c => c.Classes).ThenInclude(cc => cc.Class).ThenInclude(cl => cl.SavingThrows)
+            .Include(c => c.Classes).ThenInclude(cc => cc.CharacterSubclass)
+            .Include(c => c.CharacterStats)
             .Include(c => c.Wallet)
             .Include(c => c.SpellSlots)
             .Include(c => c.Items).ThenInclude(i => i.CharacterItems.Where(ci => ci.CharacterId == id))
             .Include(c => c.Spells).ThenInclude(s => s.CharacterSpells.Where(cs => cs.CharacterId == id))
             .Include(c => c.Feats)
-            .Include(c => c.Features).ThenInclude(f => f.CharacterFeatures.Where(cf => cf.CharacterId == id))
-            .Include(c => c.Proficiencies).ThenInclude(p => p.CharacterProficiencies.Where(cp => cp.CharacterId == id))
+            .Include(c => c.Features)
+            .Include(c => c.Proficiencies).ThenInclude(cp => cp.Skills)
+            .Include(c => c.Proficiencies).ThenInclude(cp => cp.AdditionalSavingThrows)
+            .Include(c => c.Proficiencies).ThenInclude(cp => cp.Languages)
+            .Include(c => c.Proficiencies).ThenInclude(cp => cp.Instruments)
+            .Include(c => c.Proficiencies).ThenInclude(cp => cp.Weapons)
+            .Include(c => c.Proficiencies).ThenInclude(cp => cp.Armors)
             .AsSplitQuery()
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
@@ -39,7 +46,7 @@ internal sealed class CharacterRepository : ICharacterRepository
         await _context.Characters
             .Include(c => c.Owner)
             .Include(c => c.Campaign)
-            .Include(c => c.Classes)
+            .Include(c => c.Classes).ThenInclude(cc => cc.Class)
             .Where(c => c.OwnerId == ownerId)
             .OrderByDescending(c => c.UpdatedAt)
             .ToListAsync(ct);
@@ -47,9 +54,12 @@ internal sealed class CharacterRepository : ICharacterRepository
     public async Task<IReadOnlyList<Character>> GetCampaignCharactersAsync(int campaignId, CancellationToken ct = default) =>
         await _context.Characters
             .Include(c => c.Owner)
-            .Include(c => c.Classes)
+            .Include(c => c.Classes).ThenInclude(cc => cc.Class)
             .Where(c => c.CampaignId == campaignId)
             .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Item>> GetItemsByIdsAsync(IEnumerable<int> ids, CancellationToken ct = default) =>
+        await _context.Items.Where(i => ids.Contains(i.Id)).ToListAsync(ct);
 
     public async Task AddAsync(Character character, CancellationToken ct = default) =>
         await _context.Characters.AddAsync(character, ct);

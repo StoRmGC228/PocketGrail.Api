@@ -37,7 +37,10 @@ public interface ICharacterService
     Task<IReadOnlyList<AllyDto>> GetAlliesAsync(int characterId, int userId, CancellationToken ct = default);
 
     Task<CharacterClassDto> AddCharacterClassAsync(int characterId, AddCharacterClassRequest request, int userId, CancellationToken ct = default);
-    Task<CharacterClassDto> LevelUpAsync(int characterId, int classId, int userId, CancellationToken ct = default);
+    Task<LevelUpResponse> LevelUpAsync(int characterId, int classId, LevelUpRequest? request, int userId, CancellationToken ct = default);
     Task<CharacterClassDto> UpdateCharacterClassAsync(int characterId, int classId, UpdateCharacterClassRequest request, int userId, CancellationToken ct = default);
     Task DeleteCharacterClassAsync(int characterId, int classId, int userId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<SubclassDto>> GetSubclassesForClassAsync(string className, CancellationToken ct = default);
+    Task<CharacterClassDto> SetSubclassAsync(int characterId, int classId, SetSubclassRequest request, int userId, CancellationToken ct = default);
 }

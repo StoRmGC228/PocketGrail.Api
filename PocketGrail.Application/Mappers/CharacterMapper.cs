@@ -2,6 +2,8 @@ namespace PocketGrail.Application.Mappers;
 
 using PocketGrail.Application.DTOs;
 using PocketGrail.Domain.Entities;
+using PocketGrail.Domain.Entities.Characters;
+using PocketGrail.Domain.Entities.ClassEntities;
 
 public static class CharacterMapper
 {
@@ -33,6 +35,7 @@ public static class CharacterMapper
         ClassDisplay = FormatClassDisplay(c.Classes),
         Level = c.Level,
         ProficiencyBonus = c.ProficiencyBonus,
+        UsedHitDice = c.UsedHitDice,
         CurrentHp = c.CurrentHp,
         MaxHp = c.MaxHp,
         TempHp = c.TempHp,
@@ -41,12 +44,12 @@ public static class CharacterMapper
         ImageCropY = c.ImageCropY,
         ImageCropWidth = c.ImageCropWidth,
         ImageCropHeight = c.ImageCropHeight,
-        StrScore = c.StrScore,
-        DexScore = c.DexScore,
-        ConScore = c.ConScore,
-        IntScore = c.IntScore,
-        WisScore = c.WisScore,
-        ChaScore = c.ChaScore,
+        StrScore = c.CharacterStats?.Strength ?? 0,
+        DexScore = c.CharacterStats?.Dexterity ?? 0,
+        ConScore = c.CharacterStats?.Constitution ?? 0,
+        IntScore = c.CharacterStats?.Intelligence ?? 0,
+        WisScore = c.CharacterStats?.Wisdom ?? 0,
+        ChaScore = c.CharacterStats?.Charisma ?? 0,
         ArmorClass = c.ArmorClass,
         Speed = c.Speed,
         XpPoints = c.XpPoints,
@@ -59,7 +62,6 @@ public static class CharacterMapper
         EpCoins = c.Wallet?.EpCoins ?? 0,
         GpCoins = c.Wallet?.GpCoins ?? 0,
         PpCoins = c.Wallet?.PpCoins ?? 0,
-        SpellAbility = c.SpellAbility,
         Alignment = c.Alignment,
         BackgroundStory = c.BackgroundStory,
         Appearance = c.Appearance,
@@ -79,17 +81,20 @@ public static class CharacterMapper
             return ToSpellDto(s, j?.Prepared ?? true);
         }).ToList(),
         Feats = c.Feats.Select(f => new FeatDto { Id = f.Id, Name = f.Name, Requirement = f.Requirement, Description = f.Description }).ToList(),
-        Features = c.Features.Select(f =>
-        {
-            var j = f.CharacterFeatures.FirstOrDefault(cf => cf.CharacterId == c.Id);
-            return ToFeatureDto(f, j?.IsAutoAdded ?? false);
-        }).ToList(),
-        Proficiencies = c.Proficiencies.Select(p =>
-        {
-            var j = p.CharacterProficiencies.FirstOrDefault(cp => cp.CharacterId == c.Id);
-            return new ProficiencyDto { Id = p.Id, Name = p.Name, ProficiencyType = p.ProficiencyType, HasExpertise = j?.HasExpertise ?? false, AbilityKey = j?.AbilityKey };
-        }).ToList(),
+        Features = c.Features.Select(ToFeatureDto).ToList(),
         SpellSlots = c.SpellSlots.Select(s => new SpellSlotDto { Id = s.Id, SlotLevel = s.SlotLevel, TotalSlots = s.TotalSlots, RemainingSlots = s.RemainingSlots }).ToList(),
+        SavingThrows = c.Classes
+            .SelectMany(cc => cc.Class.SavingThrows.Select(st => st.Ability))
+            .Union(c.Proficiencies?.AdditionalSavingThrows.Select(st => st.Ability) ?? [])
+            .Select(a => a.ToString())
+            .ToList(),
+        SkillProficiencies = c.Proficiencies?.Skills
+            .Select(sp => new SkillProficiencyDto { Skill = sp.Skill.ToString(), HasExpertise = sp.HasExpertise })
+            .ToList() ?? [],
+        Languages = c.Proficiencies?.Languages.Select(l => l.Name).ToList() ?? [],
+        Instruments = c.Proficiencies?.Instruments.Select(i => i.Name).ToList() ?? [],
+        Weapons = c.Proficiencies?.Weapons.Select(w => w.Name).ToList() ?? [],
+        Armors = c.Proficiencies?.Armors.Select(a => a.Name).ToList() ?? [],
         CreatedAt = c.CreatedAt,
         UpdatedAt = c.UpdatedAt
     };
@@ -97,18 +102,17 @@ public static class CharacterMapper
     public static CharacterClassDto ToClassDto(CharacterClass cc) => new()
     {
         Id = cc.Id,
-        ClassName = cc.ClassName,
+        ClassName = cc.Class?.Name ?? string.Empty,
         ClassLevel = cc.ClassLevel,
-        HitDice = cc.HitDice,
-        Subclass = cc.Subclass,
-        TotalHitDice = cc.TotalHitDice,
-        UsedHitDice = cc.UsedHitDice
+        HitDice = cc.Class?.HitDice ?? string.Empty,
+        Subclass = cc.CharacterSubclass?.Name,
+        TotalHitDice = cc.TotalHitDiceCount
     };
 
     public static string FormatClassDisplay(ICollection<CharacterClass> classes) =>
         classes.Count == 0
             ? string.Empty
-            : string.Join(" / ", classes.OrderByDescending(c => c.ClassLevel).Select(c => $"{c.ClassName} {c.ClassLevel}"));
+            : string.Join(" / ", classes.OrderByDescending(c => c.ClassLevel).Select(c => $"{c.Class?.Name ?? "?"} {c.ClassLevel}"));
 
     public static ItemDto ToItemDto(Item i, bool equipped, bool attuned, int qty) => new()
     {
@@ -126,10 +130,42 @@ public static class CharacterMapper
         Components = s.Components, Prepared = prepared
     };
 
-    public static FeatureDto ToFeatureDto(Feature f, bool autoAdded) => new()
+    public static FeatureDto ToFeatureDto(Feature f) => new()
     {
-        Id = f.Id, Name = f.Name, Description = f.Description, FeatureType = f.FeatureType,
-        FeatureLevel = f.FeatureLevel, SourceClass = f.SourceClass, SourceRace = f.SourceRace,
-        IsAutoAdded = autoAdded
+        Id = f.Id, Name = f.Name, Description = f.Description
+    };
+
+    public static SubclassDto ToSubclassDto(Subclass s) => new()
+    {
+        Id = s.Id, Name = s.Name, ShortDescription = s.ShortDescription, ClassId = s.ClassId
+    };
+
+    public static ClassDto ToClassInfoDto(Class c) => new()
+    {
+        Id              = c.Id,
+        Name            = c.Name,
+        HitDice         = c.HitDice,
+        SpellAbility    = c.SpellAbility,
+        SkillChoiceCount = c.SkillChoiceCount,
+        Subclasses      = c.Subclasses?.Select(ToSubclassDto).ToList() ?? []
+    };
+
+    public static RaceDto ToRaceDto(Race r) => new()
+    {
+        Id                  = r.Id,
+        Name                = r.Name,
+        BaseSpeed           = r.BaseSpeed,
+        StrBonus            = r.StrBonus,
+        DexBonus            = r.DexBonus,
+        ConBonus            = r.ConBonus,
+        IntBonus            = r.IntBonus,
+        WisBonus            = r.WisBonus,
+        ChaBonus            = r.ChaBonus,
+        FlexibleBonusPoints = r.FlexibleBonusPoints,
+        WeaponGrants        = r.WeaponGrants.Select(w => w.Name).ToList(),
+        ArmorGrants         = r.ArmorGrants.Select(a => a.Name).ToList(),
+        LanguageGrants      = r.LanguageGrants.Select(l => l.Name).ToList(),
+        InstrumentGrants    = r.InstrumentGrants.Select(i => i.Name).ToList(),
+        Features            = r.Features.Select(f => new RaceFeatureDto { Id = f.Id, Name = f.Name, Description = f.Description }).ToList()
     };
 }

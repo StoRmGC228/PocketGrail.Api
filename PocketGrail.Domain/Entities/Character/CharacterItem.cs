@@ -1,4 +1,4 @@
-namespace PocketGrail.Domain.Entities;
+namespace PocketGrail.Domain.Entities.Characters;
 
 public class CharacterItem
 {
