@@ -2,7 +2,7 @@ namespace PocketGrail.Infrastructure.Configurations;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using PocketGrail.Domain.Entities;
+using PocketGrail.Domain.Entities.Characters;
 
 internal sealed class CharacterConfiguration : IEntityTypeConfiguration<Character>
 {
@@ -18,7 +18,6 @@ internal sealed class CharacterConfiguration : IEntityTypeConfiguration<Characte
         builder.Property(c => c.MaxHp).IsRequired();
         builder.Property(c => c.ImageUrl).HasMaxLength(500);
         builder.Property(c => c.Alignment).HasMaxLength(50);
-        builder.Property(c => c.SpellAbility).HasMaxLength(10);
         builder.Property(c => c.BackgroundStory).HasMaxLength(2000);
         builder.Property(c => c.Appearance).HasMaxLength(1000);
         builder.Property(c => c.Notes).HasMaxLength(2000);
@@ -37,6 +36,11 @@ internal sealed class CharacterConfiguration : IEntityTypeConfiguration<Characte
         builder.HasOne(c => c.Wallet)
             .WithOne(w => w.Character)
             .HasForeignKey<CharacterWallet>(w => w.CharacterId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(c => c.Proficiencies)
+            .WithOne(cp => cp.Character)
+            .HasForeignKey<CharacterProficiencies>(cp => cp.CharacterId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(c => c.SpellSlots)
@@ -75,12 +79,5 @@ internal sealed class CharacterConfiguration : IEntityTypeConfiguration<Characte
                 j => j.HasOne(cf => cf.Feature).WithMany(f => f.CharacterFeatures).HasForeignKey(cf => cf.FeatureId),
                 j => j.HasOne(cf => cf.Character).WithMany().HasForeignKey(cf => cf.CharacterId),
                 j => j.HasKey(cf => new { cf.CharacterId, cf.FeatureId }));
-
-        builder.HasMany(c => c.Proficiencies)
-            .WithMany(p => p.Characters)
-            .UsingEntity<CharacterProficiency>(
-                j => j.HasOne(cp => cp.Proficiency).WithMany(p => p.CharacterProficiencies).HasForeignKey(cp => cp.ProficiencyId),
-                j => j.HasOne(cp => cp.Character).WithMany().HasForeignKey(cp => cp.CharacterId),
-                j => j.HasKey(cp => new { cp.CharacterId, cp.ProficiencyId }));
     }
 }

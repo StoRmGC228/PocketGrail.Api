@@ -12,6 +12,7 @@ public sealed class CharacterDetailDto
     public int CurrentHp { get; init; }
     public int MaxHp { get; init; }
     public int TempHp { get; init; }
+    public int UsedHitDice { get; init; }
     public string? ImageUrl { get; init; }
     public float? ImageCropX { get; init; }
     public float? ImageCropY { get; init; }
@@ -42,9 +43,6 @@ public sealed class CharacterDetailDto
     public int GpCoins { get; init; }
     public int PpCoins { get; init; }
 
-    // Spellcasting
-    public string? SpellAbility { get; init; }
-
     // Narrative
     public string? Alignment { get; init; }
     public string? BackgroundStory { get; init; }
@@ -62,8 +60,15 @@ public sealed class CharacterDetailDto
     public IReadOnlyList<SpellDto> Spells { get; init; } = [];
     public IReadOnlyList<FeatDto> Feats { get; init; } = [];
     public IReadOnlyList<FeatureDto> Features { get; init; } = [];
-    public IReadOnlyList<ProficiencyDto> Proficiencies { get; init; } = [];
     public IReadOnlyList<SpellSlotDto> SpellSlots { get; init; } = [];
+
+    // Proficiencies
+    public IReadOnlyList<string> SavingThrows { get; init; } = [];
+    public IReadOnlyList<SkillProficiencyDto> SkillProficiencies { get; init; } = [];
+    public IReadOnlyList<string> Languages { get; init; } = [];
+    public IReadOnlyList<string> Instruments { get; init; } = [];
+    public IReadOnlyList<string> Weapons { get; init; } = [];
+    public IReadOnlyList<string> Armors { get; init; } = [];
 
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }

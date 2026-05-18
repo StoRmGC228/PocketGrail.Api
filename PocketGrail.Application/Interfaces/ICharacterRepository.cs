@@ -1,6 +1,6 @@
 namespace PocketGrail.Application.Interfaces;
 
-using PocketGrail.Domain.Entities;
+using PocketGrail.Domain.Entities.Characters;
 
 public interface ICharacterRepository
 {

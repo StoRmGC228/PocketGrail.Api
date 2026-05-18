@@ -1,5 +1,7 @@
 namespace PocketGrail.Domain.Entities;
 
+using PocketGrail.Domain.Entities.Characters;
+
 public class Feature : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
@@ -8,7 +10,6 @@ public class Feature : BaseEntity
     public int? FeatureLevel { get; set; }
     public string? SourceClass { get; set; }
     public string? SourceRace { get; set; }
-
     public ICollection<Character> Characters { get; set; } = [];
     public ICollection<CharacterFeature> CharacterFeatures { get; set; } = [];
 }

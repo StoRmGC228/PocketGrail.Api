@@ -8,5 +8,4 @@ public sealed class CharacterClassDto
     public string HitDice { get; init; } = string.Empty;
     public string? Subclass { get; init; }
     public int TotalHitDice { get; init; }
-    public int UsedHitDice { get; init; }
 }
