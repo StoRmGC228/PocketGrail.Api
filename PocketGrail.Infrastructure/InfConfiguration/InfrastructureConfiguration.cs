@@ -60,6 +60,8 @@ public static class InfrastructureConfiguration
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ICharacterRepository, CharacterRepository>();
         services.AddScoped<ICharacterService, CharacterService>();
+        services.AddScoped<IItemRepository, ItemRepository>();
+        services.AddScoped<ISpellRepository, SpellRepository>();
         services.AddScoped<IClassRepository, ClassRepository>();
         services.AddScoped<IRaceRepository, RaceRepository>();
         services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();

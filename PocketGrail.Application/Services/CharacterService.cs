@@ -12,17 +12,23 @@ using PocketGrail.Domain.Entities.Proficiencies;
 public sealed class CharacterService : ICharacterService
 {
     private readonly ICharacterRepository _repository;
+    private readonly IItemRepository _itemRepository;
+    private readonly ISpellRepository _spellRepository;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IClassRepository _classRepository;
     private readonly IRaceRepository _raceRepository;
 
     public CharacterService(
         ICharacterRepository repository,
+        IItemRepository itemRepository,
+        ISpellRepository spellRepository,
         ICloudinaryService cloudinaryService,
         IClassRepository classRepository,
         IRaceRepository raceRepository)
     {
         _repository = repository;
+        _itemRepository = itemRepository;
+        _spellRepository = spellRepository;
         _cloudinaryService = cloudinaryService;
         _classRepository = classRepository;
         _raceRepository = raceRepository;
@@ -330,6 +336,23 @@ public sealed class CharacterService : ICharacterService
         return CharacterMapper.ToItemDto(item, request.IsEquipped, request.IsAttuned, request.Quantity);
     }
 
+    public async Task<ItemDto> AddItemFromCatalogAsync(int characterId, int itemId, int userId,
+        CancellationToken ct = default)
+    {
+        var c = await GetOwnedDetailAsync(characterId, userId, ct);
+
+        if (c.Items.Any(i => i.Id == itemId))
+            throw new InvalidOperationException("This item is already in the character's inventory.");
+
+        var catalogItem = await _itemRepository.GetByIdAsync(itemId, ct)
+            ?? throw new KeyNotFoundException("Catalog item not found.");
+
+        await _repository.LinkItemAsync(characterId, itemId, ct);
+        await _repository.SaveChangesAsync(ct);
+
+        return CharacterMapper.ToItemDto(catalogItem, false, false, 1);
+    }
+
     public async Task<ItemDto> UpdateItemAsync(int characterId, int itemId, UpdateItemRequest request, int userId,
         CancellationToken ct = default)
     {
@@ -378,6 +401,23 @@ public sealed class CharacterService : ICharacterService
         }
 
         return CharacterMapper.ToSpellDto(spell, request.Prepared);
+    }
+
+    public async Task<SpellDto> AddSpellFromCatalogAsync(int characterId, int spellId, int userId,
+        CancellationToken ct = default)
+    {
+        var c = await GetOwnedDetailAsync(characterId, userId, ct);
+
+        if (c.Spells.Any(s => s.Id == spellId))
+            throw new InvalidOperationException("This spell is already in the character's spellbook.");
+
+        var catalogSpell = await _spellRepository.GetByIdAsync(spellId, ct)
+            ?? throw new KeyNotFoundException("Catalog spell not found.");
+
+        await _repository.LinkSpellAsync(characterId, spellId, ct);
+        await _repository.SaveChangesAsync(ct);
+
+        return CharacterMapper.ToSpellDto(catalogSpell, false);
     }
 
     public async Task<SpellDto> ToggleSpellPreparedAsync(int characterId, int spellId, int userId,

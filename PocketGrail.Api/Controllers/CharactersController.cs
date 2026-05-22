@@ -122,6 +122,15 @@ public sealed class CharactersController : ControllerBase
         return Ok(item);
     }
 
+    // POST /api/characters/{id}/items/catalog
+    [HttpPost("{id:int}/items/catalog")]
+    public async Task<IActionResult> AddItemFromCatalog(int id, [FromBody] AddItemFromCatalogRequest request, CancellationToken ct)
+    {
+        var userId = ClaimsHelper.GetUserId(User);
+        var item = await _characterService.AddItemFromCatalogAsync(id, request.ItemId, userId, ct);
+        return Ok(item);
+    }
+
     // PUT /api/characters/{id}/items/{itemId}
     [HttpPut("{id:int}/items/{itemId:int}")]
     public async Task<IActionResult> UpdateItem(int id, int itemId, [FromBody] UpdateItemRequest request, CancellationToken ct)
@@ -138,6 +147,15 @@ public sealed class CharactersController : ControllerBase
         var userId = ClaimsHelper.GetUserId(User);
         await _characterService.DeleteItemAsync(id, itemId, userId, ct);
         return NoContent();
+    }
+
+    // POST /api/characters/{id}/spells/catalog
+    [HttpPost("{id:int}/spells/catalog")]
+    public async Task<IActionResult> AddSpellFromCatalog(int id, [FromBody] AddSpellFromCatalogRequest request, CancellationToken ct)
+    {
+        var userId = ClaimsHelper.GetUserId(User);
+        var spell = await _characterService.AddSpellFromCatalogAsync(id, request.SpellId, userId, ct);
+        return Ok(spell);
     }
 
     // POST /api/characters/{id}/spells

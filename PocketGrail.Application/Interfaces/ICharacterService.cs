@@ -17,10 +17,12 @@ public interface ICharacterService
     Task<CharacterDetailDto> UpdateImageAsync(int id, UpdateCharacterImageRequest request, int userId, CancellationToken ct = default);
 
     Task<ItemDto> AddItemAsync(int characterId, AddItemRequest request, int userId, CancellationToken ct = default);
+    Task<ItemDto> AddItemFromCatalogAsync(int characterId, int itemId, int userId, CancellationToken ct = default);
     Task<ItemDto> UpdateItemAsync(int characterId, int itemId, UpdateItemRequest request, int userId, CancellationToken ct = default);
     Task DeleteItemAsync(int characterId, int itemId, int userId, CancellationToken ct = default);
 
     Task<SpellDto> AddSpellAsync(int characterId, AddSpellRequest request, int userId, CancellationToken ct = default);
+    Task<SpellDto> AddSpellFromCatalogAsync(int characterId, int spellId, int userId, CancellationToken ct = default);
     Task<SpellDto> ToggleSpellPreparedAsync(int characterId, int spellId, int userId, CancellationToken ct = default);
     Task DeleteSpellAsync(int characterId, int spellId, int userId, CancellationToken ct = default);
     Task<SpellSlotDto> UpdateSpellSlotAsync(int characterId, UpdateSpellSlotRequest request, int userId, CancellationToken ct = default);

@@ -61,6 +61,30 @@ internal sealed class CharacterRepository : ICharacterRepository
     public async Task<IReadOnlyList<Item>> GetItemsByIdsAsync(IEnumerable<int> ids, CancellationToken ct = default) =>
         await _context.Items.Where(i => ids.Contains(i.Id)).ToListAsync(ct);
 
+    public async Task LinkItemAsync(int characterId, int itemId, CancellationToken ct = default)
+    {
+        var junction = new CharacterItem
+        {
+            CharacterId = characterId,
+            ItemId = itemId,
+            Quantity = 1,
+            IsEquipped = false,
+            IsAttuned = false,
+        };
+        await _context.CharacterItems.AddAsync(junction, ct);
+    }
+
+    public async Task LinkSpellAsync(int characterId, int spellId, CancellationToken ct = default)
+    {
+        var junction = new CharacterSpell
+        {
+            CharacterId = characterId,
+            SpellId = spellId,
+            Prepared = false,
+        };
+        await _context.CharacterSpells.AddAsync(junction, ct);
+    }
+
     public async Task AddAsync(Character character, CancellationToken ct = default) =>
         await _context.Characters.AddAsync(character, ct);
 

@@ -106,13 +106,23 @@ public static class CharacterMapper
         ClassLevel = cc.ClassLevel,
         HitDice = cc.Class?.HitDice ?? string.Empty,
         Subclass = cc.CharacterSubclass?.Name,
-        TotalHitDice = cc.TotalHitDiceCount
+        TotalHitDice = cc.TotalHitDiceCount,
+        SpellAbility = cc.Class?.SpellAbility,
     };
 
     public static string FormatClassDisplay(ICollection<CharacterClass> classes) =>
         classes.Count == 0
             ? string.Empty
             : string.Join(" / ", classes.OrderByDescending(c => c.ClassLevel).Select(c => $"{c.Class?.Name ?? "?"} {c.ClassLevel}"));
+
+    public static CatalogItemDto ToCatalogItemDto(Item i) => new()
+    {
+        Id = i.Id, Name = i.Name, Description = i.Description, Rarity = i.Rarity, Category = i.Category,
+        Weight = i.Weight, Cost = i.Cost, IsWeapon = i.IsWeapon, IsMagical = i.IsMagical,
+        AtkMod = i.AtkMod, Damage = i.Damage, DamageType = i.DamageType,
+        WeaponProperties = i.WeaponProperties, ChargesInfo = i.ChargesInfo, RechargeType = i.RechargeType,
+        Tags = i.Tags,
+    };
 
     public static ItemDto ToItemDto(Item i, bool equipped, bool attuned, int qty) => new()
     {
@@ -121,6 +131,13 @@ public static class CharacterMapper
         AtkMod = i.AtkMod, Damage = i.Damage, DamageType = i.DamageType,
         WeaponProperties = i.WeaponProperties, ChargesInfo = i.ChargesInfo, RechargeType = i.RechargeType,
         Tags = i.Tags, IsEquipped = equipped, IsAttuned = attuned, Quantity = qty
+    };
+
+    public static CatalogSpellDto ToCatalogSpellDto(Spell s) => new()
+    {
+        Id = s.Id, Name = s.Name, Level = s.Level, School = s.School, Range = s.Range,
+        CastingTime = s.CastingTime, Concentration = s.Concentration, IsRitual = s.IsRitual,
+        Components = s.Components,
     };
 
     public static SpellDto ToSpellDto(Spell s, bool prepared) => new()
