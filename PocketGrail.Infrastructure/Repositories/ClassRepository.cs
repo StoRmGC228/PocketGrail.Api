@@ -3,6 +3,7 @@ namespace PocketGrail.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using PocketGrail.Application.Interfaces;
 using PocketGrail.Domain.Entities.ClassEntities;
+using PocketGrail.Domain.Entities.Enums;
 
 internal sealed class ClassRepository : IClassRepository
 {
@@ -75,4 +76,30 @@ internal sealed class ClassRepository : IClassRepository
             .Include(s => s.ChoicePairs)
                 .ThenInclude(p => p.OptionB)
             .FirstOrDefaultAsync(s => s.Class.Name.ToLower() == className.ToLower(), ct);
+
+    public async Task<IReadOnlyList<ClassSavingThrowProficiency>> GetSavingThrowsAsync(string className, CancellationToken ct = default) =>
+        await _context.ClassSavingThrowProficiencies
+            .Where(st => st.Class.Name.ToLower() == className.ToLower())
+            .ToListAsync(ct);
+
+    public Task<ClassSavingThrowProficiency?> GetSavingThrowByIdAsync(int id, CancellationToken ct = default) =>
+        _context.ClassSavingThrowProficiencies
+            .Include(st => st.Class)
+            .FirstOrDefaultAsync(st => st.Id == id, ct);
+
+    public Task<bool> SavingThrowExistsAsync(int classId, Ability ability, CancellationToken ct = default) =>
+        _context.ClassSavingThrowProficiencies
+            .AnyAsync(st => st.ClassId == classId && st.Ability == ability, ct);
+
+    public async Task AddSavingThrowAsync(ClassSavingThrowProficiency savingThrow, CancellationToken ct = default) =>
+        await _context.ClassSavingThrowProficiencies.AddAsync(savingThrow, ct);
+
+    public Task DeleteSavingThrowAsync(ClassSavingThrowProficiency savingThrow, CancellationToken ct = default)
+    {
+        _context.ClassSavingThrowProficiencies.Remove(savingThrow);
+        return Task.CompletedTask;
+    }
+
+    public Task SaveChangesAsync(CancellationToken ct = default) =>
+        _context.SaveChangesAsync(ct);
 }
