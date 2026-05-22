@@ -11,10 +11,6 @@ public sealed class AllyDto
     public int CurrentHp { get; init; }
     public int MaxHp { get; init; }
     public string? ImageUrl { get; init; }
-    public float? ImageCropX { get; init; }
-    public float? ImageCropY { get; init; }
-    public float? ImageCropWidth { get; init; }
-    public float? ImageCropHeight { get; init; }
     public int UserId { get; init; }
     public string Username { get; init; } = string.Empty;
 }

@@ -40,10 +40,6 @@ public static class CharacterMapper
         MaxHp = c.MaxHp,
         TempHp = c.TempHp,
         ImageUrl = c.ImageUrl,
-        ImageCropX = c.ImageCropX,
-        ImageCropY = c.ImageCropY,
-        ImageCropWidth = c.ImageCropWidth,
-        ImageCropHeight = c.ImageCropHeight,
         StrScore = c.CharacterStats?.Strength ?? 0,
         DexScore = c.CharacterStats?.Dexterity ?? 0,
         ConScore = c.CharacterStats?.Constitution ?? 0,
@@ -89,7 +85,7 @@ public static class CharacterMapper
             .Select(a => a.ToString())
             .ToList(),
         SkillProficiencies = c.Proficiencies?.Skills
-            .Select(sp => new SkillProficiencyDto { Skill = sp.Skill.ToString(), HasExpertise = sp.HasExpertise })
+            .Select(sp => new SkillProficiencyDto { Id = sp.Id, Skill = sp.Skill.ToString(), HasExpertise = sp.HasExpertise })
             .ToList() ?? [],
         Languages = c.Proficiencies?.Languages.Select(l => l.Name).ToList() ?? [],
         Instruments = c.Proficiencies?.Instruments.Select(i => i.Name).ToList() ?? [],
@@ -169,6 +165,12 @@ public static class CharacterMapper
         LanguageGrants      = r.LanguageGrants.Select(l => l.Name).ToList(),
         InstrumentGrants    = r.InstrumentGrants.Select(i => i.Name).ToList(),
         Features            = r.Features.Select(f => new RaceFeatureDto { Id = f.Id, Name = f.Name, Description = f.Description }).ToList()
+    };
+
+    public static ClassSavingThrowDto ToClassSavingThrowDto(ClassSavingThrowProficiency st) => new()
+    {
+        Id = st.Id,
+        Ability = st.Ability.ToString()
     };
 
     public static ClassStartingItemSetDto ToStartingItemSetDto(ClassStartingItemSet s) => new()

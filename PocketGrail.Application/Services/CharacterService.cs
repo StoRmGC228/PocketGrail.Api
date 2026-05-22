@@ -290,10 +290,6 @@ public sealed class CharacterService : ICharacterService
         var c = await GetOwnedDetailAsync(id, userId, ct);
         var folder = $"pocket-grail/characters/{id}";
         c.ImageUrl = await _cloudinaryService.UploadImageAsync(request.Image, folder, ct);
-        c.ImageCropX = request.CropX;
-        c.ImageCropY = request.CropY;
-        c.ImageCropWidth = request.CropWidth;
-        c.ImageCropHeight = request.CropHeight;
         c.UpdatedAt = DateTime.UtcNow;
         await _repository.SaveChangesAsync(ct);
         return CharacterMapper.ToDetailDto(c);
@@ -585,11 +581,7 @@ public sealed class CharacterService : ICharacterService
                 Level         = c.Level,
                 CurrentHp     = c.CurrentHp,
                 MaxHp         = c.MaxHp,
-                ImageUrl      = c.ImageUrl,
-                ImageCropX    = c.ImageCropX,
-                ImageCropY    = c.ImageCropY,
-                ImageCropWidth  = c.ImageCropWidth,
-                ImageCropHeight = c.ImageCropHeight,
+                ImageUrl = c.ImageUrl,
                 UserId   = c.OwnerId,
                 Username = c.Owner?.Username ?? string.Empty
             })

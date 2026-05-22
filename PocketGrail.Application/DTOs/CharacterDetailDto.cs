@@ -14,10 +14,6 @@ public sealed class CharacterDetailDto
     public int TempHp { get; init; }
     public int UsedHitDice { get; init; }
     public string? ImageUrl { get; init; }
-    public float? ImageCropX { get; init; }
-    public float? ImageCropY { get; init; }
-    public float? ImageCropWidth { get; init; }
-    public float? ImageCropHeight { get; init; }
 
     // Ability scores
     public int StrScore { get; init; }
