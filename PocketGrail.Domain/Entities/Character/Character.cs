@@ -23,10 +23,6 @@ public class Character : BaseEntity
     public int MaxHp { get; set; }
     public int TempHp { get; set; }
     public string? ImageUrl { get; set; }
-    public float? ImageCropX { get; set; }
-    public float? ImageCropY { get; set; }
-    public float? ImageCropWidth { get; set; }
-    public float? ImageCropHeight { get; set; }
 
     public CharacterStats? CharacterStats { get; set; }
 

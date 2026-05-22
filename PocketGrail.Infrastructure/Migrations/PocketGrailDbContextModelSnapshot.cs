@@ -320,18 +320,6 @@ namespace PocketGrail.Infrastructure.Migrations
                     b.Property<bool>("HasInspiration")
                         .HasColumnType("boolean");
 
-                    b.Property<float?>("ImageCropHeight")
-                        .HasColumnType("real");
-
-                    b.Property<float?>("ImageCropWidth")
-                        .HasColumnType("real");
-
-                    b.Property<float?>("ImageCropX")
-                        .HasColumnType("real");
-
-                    b.Property<float?>("ImageCropY")
-                        .HasColumnType("real");
-
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
