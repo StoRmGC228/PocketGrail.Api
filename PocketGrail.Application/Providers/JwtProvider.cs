@@ -5,7 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using PocketGrail.Application.Interfaces;
-using PocketGrail.Domain.Entities;
+using PocketGrail.DataAccess.Entities;
 
 public sealed class JwtProvider : IJwtProvider
 {

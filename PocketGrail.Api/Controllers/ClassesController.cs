@@ -3,10 +3,10 @@ namespace PocketGrail.Api.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PocketGrail.Application.DTOs;
-using PocketGrail.Application.Interfaces;
 using PocketGrail.Application.Mappers;
-using PocketGrail.Domain.Entities.ClassEntities;
-using PocketGrail.Domain.Entities.Enums;
+using PocketGrail.DataAccess.Entities.ClassEntities;
+using PocketGrail.DataAccess.Entities.Enums;
+using PocketGrail.DataAccess.Interfaces;
 
 [ApiController]
 [Route("api/[controller]")]

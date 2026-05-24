@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PocketGrail.Application\PocketGrail.Application.csproj" />
-    <ProjectReference Include="..\PocketGrail.Infrastructure\PocketGrail.Infrastructure.csproj" />
+    <ProjectReference Include="..\PocketGrail.DataAccess\PocketGrail.DataAccess.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -3,11 +3,13 @@ namespace PocketGrail.Application.Services;
 using PocketGrail.Application.DTOs;
 using PocketGrail.Application.Interfaces;
 using PocketGrail.Application.Mappers;
-using PocketGrail.Domain.Entities;
-using PocketGrail.Domain.Entities.Characters;
-using PocketGrail.Domain.Entities.ClassEntities;
-using PocketGrail.Domain.Entities.Enums;
-using PocketGrail.Domain.Entities.Proficiencies;
+using PocketGrail.DataAccess.Entities;
+using PocketGrail.DataAccess.Entities.Characters;
+using PocketGrail.DataAccess.Entities.ClassEntities;
+using PocketGrail.DataAccess.Entities.Enums;
+using PocketGrail.DataAccess.Entities.Proficiencies;
+using PocketGrail.DataAccess.Interfaces;
+using PocketGrail.Infrastructure.Interfaces;
 
 public sealed class CharacterService : ICharacterService
 {

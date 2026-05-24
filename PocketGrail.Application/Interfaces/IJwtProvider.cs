@@ -1,6 +1,6 @@
 namespace PocketGrail.Application.Interfaces;
 
-using PocketGrail.Domain.Entities;
+using PocketGrail.DataAccess.Entities;
 
 public interface IJwtProvider
 {

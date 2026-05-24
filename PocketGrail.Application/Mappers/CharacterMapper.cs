@@ -1,9 +1,9 @@
 namespace PocketGrail.Application.Mappers;
 
 using PocketGrail.Application.DTOs;
-using PocketGrail.Domain.Entities;
-using PocketGrail.Domain.Entities.Characters;
-using PocketGrail.Domain.Entities.ClassEntities;
+using PocketGrail.DataAccess.Entities;
+using PocketGrail.DataAccess.Entities.Characters;
+using PocketGrail.DataAccess.Entities.ClassEntities;
 
 public static class CharacterMapper
 {

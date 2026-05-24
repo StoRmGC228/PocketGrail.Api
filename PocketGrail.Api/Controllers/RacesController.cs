@@ -2,8 +2,8 @@ namespace PocketGrail.Api.Controllers;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PocketGrail.Application.Interfaces;
 using PocketGrail.Application.Mappers;
+using PocketGrail.DataAccess.Interfaces;
 
 [ApiController]
 [Route("api/[controller]")]

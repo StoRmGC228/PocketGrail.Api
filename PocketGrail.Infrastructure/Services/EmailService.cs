@@ -5,8 +5,8 @@ using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
-using PocketGrail.Application.Interfaces;
-using PocketGrail.Domain.Configuration;
+using PocketGrail.Infrastructure.Configuration;
+using PocketGrail.Infrastructure.Interfaces;
 using Scriban;
 
 public sealed class EmailService : IEmailService

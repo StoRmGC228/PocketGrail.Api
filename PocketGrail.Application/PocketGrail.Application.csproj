@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PocketGrail.Domain\PocketGrail.Domain.csproj" />
+    <ProjectReference Include="..\PocketGrail.DataAccess\PocketGrail.DataAccess.csproj" />
+    <ProjectReference Include="..\PocketGrail.Infrastructure\PocketGrail.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

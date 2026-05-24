@@ -3,7 +3,7 @@ namespace PocketGrail.Infrastructure.Services;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Http;
-using PocketGrail.Application.Interfaces;
+using PocketGrail.Infrastructure.Interfaces;
 
 internal sealed class CloudinaryService : ICloudinaryService
 {
