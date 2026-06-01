@@ -1,7 +1,7 @@
 namespace PocketGrail.Application.Mappers;
 
 using PocketGrail.Application.DTOs;
-using PocketGrail.Domain.Entities;
+using PocketGrail.DataAccess.Entities;
 
 public static class CampaignMapper
 {

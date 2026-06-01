@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PocketGrail.Infrastructure"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PocketGrail.Domain", "PocketGrail.Domain\PocketGrail.Domain.csproj", "{579E630F-485A-4703-9AC7-7AB68447E8FB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PocketGrail.DataAccess", "PocketGrail.DataAccess\PocketGrail.DataAccess.csproj", "{C3A111B5-E8BE-400E-AEA1-DFB69F14BFC0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{579E630F-485A-4703-9AC7-7AB68447E8FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{579E630F-485A-4703-9AC7-7AB68447E8FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{579E630F-485A-4703-9AC7-7AB68447E8FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3A111B5-E8BE-400E-AEA1-DFB69F14BFC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3A111B5-E8BE-400E-AEA1-DFB69F14BFC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3A111B5-E8BE-400E-AEA1-DFB69F14BFC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3A111B5-E8BE-400E-AEA1-DFB69F14BFC0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

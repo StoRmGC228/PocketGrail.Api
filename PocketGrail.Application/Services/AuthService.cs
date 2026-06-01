@@ -4,8 +4,10 @@ using Microsoft.Extensions.Caching.Memory;
 using PocketGrail.Application.DTOs;
 using PocketGrail.Application.Helpers;
 using PocketGrail.Application.Interfaces;
-using PocketGrail.Domain.Entities;
-using PocketGrail.Domain.Entities.Enums;
+using PocketGrail.DataAccess.Entities;
+using PocketGrail.DataAccess.Entities.Enums;
+using PocketGrail.DataAccess.Interfaces;
+using PocketGrail.Infrastructure.Interfaces;
 
 public sealed class AuthService : IAuthService
 {

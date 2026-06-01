@@ -12,18 +12,19 @@ dotnet build PocketGrail.Api.sln
 dotnet run --project PocketGrail.Api/PocketGrail.Api.csproj
 
 # EF Core migrations (run from solution root)
-dotnet ef migrations add <Name> --project PocketGrail.Infrastructure --startup-project PocketGrail.Api
-dotnet ef database update --project PocketGrail.Infrastructure --startup-project PocketGrail.Api
+dotnet ef migrations add <Name> --project PocketGrail.DataAccess --startup-project PocketGrail.Api
+dotnet ef database update --project PocketGrail.DataAccess --startup-project PocketGrail.Api
 ```
 
 ## Architecture
 
-Clean Architecture with four projects:
+Clean Architecture with five projects:
 
-- **PocketGrail.Domain** — entities (`User`, `Campaign`, `CampaignParticipant`, `BaseEntity`), enums (`UserRole`). No dependencies on other layers.
-- **PocketGrail.Application** — service interfaces, DTOs, `JwtProvider`, `AuthService`, `CampaignService`, `CodeGeneratorService`. Depends only on Domain.
-- **PocketGrail.Infrastructure** — EF Core (`PocketGrailDbContext`), repository implementations, email (MailKit), Cloudinary. Depends on Application + Domain.
-- **PocketGrail.Api** — ASP.NET Core 8 controllers (`AuthController`, `CampaignsController`), SignalR hub (`CampaignHub`), global error middleware, DI wiring via `ServicesConfiguration`.
+- **PocketGrail.Domain** — Rich domain aggregates (`Character`, `Campaign`, `User`), value objects (`CharacterStats`, `CharacterWallet`), supporting types, domain exceptions. No project dependencies.
+- **PocketGrail.DataAccess** — EF Core (`PocketGrailDbContext`), all persistence entities, Fluent API configurations, migrations, repository implementations and interfaces. No project dependencies (EF Core + Npgsql NuGet only).
+- **PocketGrail.Infrastructure** — Email (MailKit/Scriban) and Cloudinary integrations only. No project dependencies.
+- **PocketGrail.Application** — Thin orchestration layer: service interfaces, DTOs, mappers (DataAccess ↔ Domain ↔ DTO), `AuthService`, `CampaignService`, `CharacterService`. Depends on Domain + DataAccess + Infrastructure. DI composition root (`AddApplicationServices`).
+- **PocketGrail.Api** — ASP.NET Core 8 controllers, SignalR hub (`CampaignHub`), global error middleware. References Application and DataAccess. DI wired via `AddPocketGrailServices` → `AddApplicationServices`.
 
 ## Key Domain Concepts
 
@@ -34,7 +35,7 @@ Clean Architecture with four projects:
 
 ## Data Access
 
-PostgreSQL via EF Core 8 (Npgsql). DbContext in `PocketGrail.Infrastructure`. Repositories follow the interface-per-aggregate pattern defined in `PocketGrail.Application/Interfaces/`.
+PostgreSQL via EF Core 8 (Npgsql). `PocketGrailDbContext` lives in `PocketGrail.DataAccess/Context/`. Repository interfaces and implementations are co-located in `PocketGrail.DataAccess/Interfaces/` and `PocketGrail.DataAccess/Repositories/`.
 
 Key repository methods to be aware of: `GetByCodeAsync`, `IsUserParticipantAsync`, `CodeExistsAsync` on `ICampaignRepository`.
 
