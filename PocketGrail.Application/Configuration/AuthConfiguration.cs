@@ -5,9 +5,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using PocketGrail.Application.Interfaces;
-using PocketGrail.Application.Providers;
-using PocketGrail.Application.Services;
 
 public static class AuthConfiguration
 {
@@ -58,9 +55,6 @@ public static class AuthConfiguration
             options.AddPolicy("PlayerAndAbove", policy =>
                 policy.RequireRole("DungeonMaster", "Player"));
         });
-
-        services.AddScoped<IJwtProvider, JwtProvider>();
-        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }

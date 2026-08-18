@@ -3,7 +3,7 @@ namespace PocketGrail.Infrastructure.Services;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Http;
-using PocketGrail.Application.Interfaces;
+using PocketGrail.Infrastructure.Interfaces;
 
 internal sealed class CloudinaryService : ICloudinaryService
 {
@@ -14,14 +14,14 @@ internal sealed class CloudinaryService : ICloudinaryService
         _cloudinary = cloudinary;
     }
 
-    public async Task<string> UploadImageAsync(IFormFile file, CancellationToken ct = default)
+    public async Task<string> UploadImageAsync(IFormFile file, string folder = "pocket-grail/campaigns", CancellationToken ct = default)
     {
         await using var stream = file.OpenReadStream();
 
         var uploadParams = new ImageUploadParams
         {
             File = new FileDescription(file.FileName, stream),
-            Folder = "pocket-grail/campaigns",
+            Folder = folder,
             UseFilename = false,
             UniqueFilename = true,
             Overwrite = false
